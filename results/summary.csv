@@ -1,0 +1,7 @@
+mode,mechanism,sim_latency_ms,mean_ms,stdev_ms,mean_wire_bytes,n
+classical,n/a,0,0.5413,0.081,72,10
+classical,n/a,50,118.4896,4.2351,72,10
+hybrid,ML-KEM-768,0,1.6778,0.3531,2384,10
+hybrid,ML-KEM-768,50,120.1684,8.7521,2384,10
+pqc,ML-KEM-768,0,0.826,0.1943,2312,10
+pqc,ML-KEM-768,50,120.983,10.8746,2312,10
