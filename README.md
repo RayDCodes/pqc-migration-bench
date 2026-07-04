@@ -24,8 +24,7 @@ reason.
 What I am trying to think about and explore was what does that migration
 actually cost you, in handshake latency and bytes on the wire?
 
-This benchmark was built after reading Rios et al., "[Toward the Quantum-Safe Web: Benchmarking Post-Quantum TLS]
-(https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=10844321)" (IEEE Network, 2025),
+This benchmark was built after reading Rios et al., "[Toward the Quantum-Safe Web: Benchmarking Post-Quantum TLS](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=10844321)" (IEEE Network, 2025),
 which benchmarks full TLS 1.3 handshakes across NIST PQC standards using
 OpenSSL/liboqs/oqs-provider in Docker. This paper measures connections-per-second and transmission overhead across
 KEM + signature combinations at all five NIST security levels.
