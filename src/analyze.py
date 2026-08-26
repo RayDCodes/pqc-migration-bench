@@ -20,20 +20,25 @@ IN_CSV = RESULTS_DIR / "handshake_results.csv"
 
 LABELS = {
     ("classical", "n/a"): "Classical\nX25519",
-    ("pqc", "ML-KEM-512"): "ML-KEM-512",
     ("pqc", "ML-KEM-768"): "ML-KEM-768",
-    ("pqc", "ML-KEM-1024"): "ML-KEM-1024",
-    ("hybrid", "ML-KEM-512"): "Hybrid\nX25519+512",
     ("hybrid", "ML-KEM-768"): "Hybrid\nX25519+768",
-    ("hybrid", "ML-KEM-1024"): "Hybrid\nX25519+1024",
+    ("signed", "ML-KEM-768"): "Signed\nX25519+768",
 }
+
 ORDER = list(LABELS.keys())
 COLORS = {
     "classical": "#4C72B0",
     "pqc": "#DD8452",
     "hybrid": "#55A868",
+    "signed": "#C44E52",
 }
 
+KEYS_TO_PLOT = [
+    ("classical", "n/a"),
+    ("pqc", "ML-KEM-768"),
+    ("hybrid", "ML-KEM-768"),
+    ("signed", "ML-KEM-768"),
+]
 
 def load_rows():
     rows = []
@@ -71,7 +76,7 @@ def chart_compute_only(groups):
 
     bars = ax.bar(xs, means, yerr=errs, capsize=4, color=colors)
     ax.set_ylabel("Handshake time (ms), 0ms simulated network latency")
-    ax.set_title("Compute-only handshake cost: classical vs PQC vs hybrid\n(localhost, real X25519 / ML-KEM operations)")
+    ax.set_title("Compute-only handshake cost: classical vs PQC vs hybrid vs signed")
     for b, m in zip(bars, means):
         ax.text(b.get_x() + b.get_width() / 2, b.get_height(), f"{m:.3f}ms", ha="center", va="bottom", fontsize=8)
     fig.tight_layout()
@@ -93,7 +98,7 @@ def chart_wire_bytes(groups):
 
     bars = ax.bar(xs, vals, color=colors)
     ax.set_ylabel("Total handshake bytes on the wire")
-    ax.set_title("Handshake size: classical vs PQC vs hybrid")
+    ax.set_title("Handshake size: classical vs PQC vs hybrid vs signed")
     for b, v in zip(bars, vals):
         ax.text(b.get_x() + b.get_width() / 2, b.get_height(), f"{v}B", ha="center", va="bottom", fontsize=8)
     fig.tight_layout()
@@ -104,12 +109,7 @@ def chart_wire_bytes(groups):
 def chart_vs_network(groups):
     fig, ax = plt.subplots(figsize=(9, 5.5))
     latencies = sorted(set(k[2] for k in groups.keys()))
-    plot_keys = [
-        ("classical", "n/a"),
-        ("pqc", "ML-KEM-768"),
-        ("hybrid", "ML-KEM-768"),
-    ]
-    for key in plot_keys:
+    for key in KEYS_TO_PLOT:
         mode, mech = key
         ys = []
         for lat in latencies:
@@ -119,7 +119,7 @@ def chart_vs_network(groups):
 
     ax.set_xlabel("Simulated one-way network latency (ms)")
     ax.set_ylabel("Total handshake time (ms)")
-    ax.set_title("Handshake time is dominated by network RTT, not crypto cost\n(ML-KEM-768 shown as representative PQC level)")
+    ax.set_title("Handshake time is dominated by network RTT, not crypto cost\n(ML-KEM-768 shown as representative level for PQC/hybrid/signed)")
     ax.legend()
     ax.grid(alpha=0.3)
     fig.tight_layout()
