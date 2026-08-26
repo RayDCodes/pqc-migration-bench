@@ -8,11 +8,9 @@ NIST recently finalized the first post-quantum cryptography standards (FIPS 203/
 
 That's why most organizations are moving to hybrid key exchange (classical plus PQC combined) rather than jumping straight to pure PQC. You need both primitives broken to lose confidentiality, which is a meaningfully higher bar. Chrome/BoringSSL and OpenSSH already ship hybrid X25519+ML-KEM by default.
 
-Part of what pulled me into this topic was looking at what quantum security teams at large financial institutions, Wells Fargo among them, are actually working on right now. PQC migration is clearly moving from "something to watch" to an active roadmap item for institutions handling long-lived sensitive data, and I wanted to understand the real engineering tradeoffs behind that shift instead of just reading the standards documents.
-
 What I wanted to actually measure was what that migration costs, in handshake latency and bytes on the wire. And once key exchange is covered, what does the other half of a real handshake cost, actually proving you're talking to the server you think you are?
 
-This project started after reading Rios et al., "[Toward the Quantum-Safe Web: Benchmarking Post-Quantum TLS](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=10844321)" (IEEE Network, 2025), which benchmarks full TLS 1.3 handshakes across NIST PQC standards using OpenSSL/liboqs/oqs-provider in Docker.
+This project started after reading Rios et al., "[Toward the Quantum-Safe Web: Benchmarking Post-Quantum TLS](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=10844321)" (IEEE Network, 2025), which benchmarks full TLS 1.3 handshakes across NIST PQC standards using OpenSSL/liboqs/oqs-provider in Docker. This got even more interesting once I started interning on Wells Fargo's cybersecurity team, where I saw up close how a large financial institution is actually approaching the move to post-quantum cryptography.
 
 ## What's actually being measured
 
