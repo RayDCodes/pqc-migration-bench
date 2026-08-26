@@ -33,13 +33,14 @@ from common import ByteCounter
 import handshake_classical
 import handshake_pqc
 import handshake_hybrid
+import handshake_signed
 
 __all__ = ["DelayedSocket"]
 
 MECHANISMS = ["ML-KEM-512", "ML-KEM-768", "ML-KEM-1024"]
-LATENCIES_MS = [0, 20, 75]  # one-way simulated network delay (localhost / same-region / cross-region-ish)
+SIG_MECHANISM = "ML-DSA-65"
+LATENCIES_MS = [0, 20, 75]
 TRIALS_DEFAULT = 60
-
 
 def run_server(mode, mechanism, delay_s, ready_event, result_holder, port_holder):
     srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -59,6 +60,8 @@ def run_server(mode, mechanism, delay_s, ready_event, result_holder, port_holder
         key = handshake_pqc.server_handshake(dconn, counter, mechanism)
     elif mode == "hybrid":
         key = handshake_hybrid.server_handshake(dconn, counter, mechanism)
+    elif mode == "signed":
+        key = handshake_signed.server_handshake(dconn, counter, mechanism, SIG_MECHANISM)
     else:
         raise ValueError(mode)
 
@@ -96,6 +99,8 @@ def run_one_handshake(mode: str, mechanism: str, delay_ms: int):
         client_key = handshake_pqc.client_handshake(dclient, counter, mechanism)
     elif mode == "hybrid":
         client_key = handshake_hybrid.client_handshake(dclient, counter, mechanism)
+    elif mode == "signed":
+        client_key = handshake_signed.client_handshake(dclient, counter, mechanism, SIG_MECHANISM)
     else:
         raise ValueError(mode)
     elapsed_ms = (time.perf_counter() - start) * 1000.0
@@ -130,6 +135,7 @@ def main():
     jobs = [("classical", "n/a", lat) for lat in latencies]
     jobs += [("pqc", m, lat) for m in mechanisms for lat in latencies]
     jobs += [("hybrid", m, lat) for m in mechanisms for lat in latencies]
+    jobs += [("signed", m, lat) for m in mechanisms for lat in latencies]
 
     for mode, mechanism, lat in jobs:
         print(f"[bench] mode={mode:9s} mech={mechanism:12s} latency={lat:4d}ms  ", end="", flush=True)
