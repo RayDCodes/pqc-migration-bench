@@ -35,7 +35,7 @@ Every handshake:
 4. Asserts both sides derived an identical session key, this is the correctness check, and a mismatch fails loudly rather than silently
 5. Records handshake time and total wire bytes
 
-To separate crypto compute cost from network cost, every socket gets wrapped in a `DelayedSocket` that injects configurable one-way latency (0 / 20 / 75 ms), standing in for localhost, same-region, and cross-region-ish conditions.
+To separate cryptographic compute cost from network cost, every socket gets wrapped in a `DelayedSocket` that injects configurable one-way latency (0 / 20 / 75 ms), standing in for localhost, same-region, and cross-region-ish conditions.
 
 ## Results
 
