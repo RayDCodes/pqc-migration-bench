@@ -22,7 +22,8 @@ LABELS = {
     ("classical", "n/a"): "Classical\nX25519",
     ("pqc", "ML-KEM-768"): "ML-KEM-768",
     ("hybrid", "ML-KEM-768"): "Hybrid\nX25519+768",
-    ("signed", "ML-KEM-768"): "Signed\nX25519+768",
+    ("signed", "ML-KEM-768"): "Signed (v1)\nX25519+768",
+    ("auth", "ML-KEM-768"): "Auth (v2)\nX25519+768",
 }
 
 ORDER = list(LABELS.keys())
@@ -31,6 +32,7 @@ COLORS = {
     "pqc": "#DD8452",
     "hybrid": "#55A868",
     "signed": "#C44E52",
+    "auth": "#8172B3",
 }
 
 KEYS_TO_PLOT = [
@@ -38,6 +40,7 @@ KEYS_TO_PLOT = [
     ("pqc", "ML-KEM-768"),
     ("hybrid", "ML-KEM-768"),
     ("signed", "ML-KEM-768"),
+    ("auth", "ML-KEM-768"),
 ]
 
 def load_rows():
