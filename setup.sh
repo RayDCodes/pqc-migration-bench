@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# One-shot setup: builds liboqs (C library, shared build, ML-KEM only for
+# One-shot setup: builds liboqs (C library, shared build, ML-KEM + ML-DSA only for
 # speed), installs the Python bindings, and installs the remaining Python
 # deps. Tested on Ubuntu 24.04.
 #
@@ -8,14 +8,15 @@
 #   ./setup.sh
 #   source ./env.sh          # every new shell before running bench.py/analyze.py
 set -euo pipefail
+SUDO=""; [ "$(id -u)" -ne 0 ] && SUDO="sudo"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_DIR="${ROOT_DIR}/liboqs-install"
 
 echo "==> Installing OS build dependencies (cmake, ninja, libssl-dev)"
 if command -v apt-get >/dev/null; then
-    apt-get update -qq
-    apt-get install -y -qq cmake ninja-build libssl-dev python3-dev
+    $SUDO apt-get update -qq
+    $SUDO apt-get install -y -qq cmake ninja-build libssl-dev python3-dev
 else
     echo "    Skipping apt-get (not on Debian/Ubuntu) -- make sure cmake, ninja, and OpenSSL headers are installed."
 fi
@@ -25,14 +26,14 @@ if [ ! -d "${ROOT_DIR}/liboqs" ]; then
     git clone --depth 1 --branch main https://github.com/open-quantum-safe/liboqs.git "${ROOT_DIR}/liboqs"
 fi
 
-echo "==> Building liboqs (shared lib, ML-KEM only)"
+echo "==> Building liboqs (shared lib, ML-KEM + ML-DSA only)"
 mkdir -p "${ROOT_DIR}/liboqs/build"
 cd "${ROOT_DIR}/liboqs/build"
 cmake -GNinja \
     -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
     -DOQS_BUILD_ONLY_LIB=ON \
     -DBUILD_SHARED_LIBS=ON \
-    -DOQS_MINIMAL_BUILD="KEM_ml_kem_512;KEM_ml_kem_768;KEM_ml_kem_1024" \
+    -DOQS_MINIMAL_BUILD="KEM_ml_kem_512;KEM_ml_kem_768;KEM_ml_kem_1024;SIG_ml_dsa_44;SIG_ml_dsa_65;SIG_ml_dsa_87" \
     ..
 ninja -j"$(nproc)"
 ninja install
@@ -58,5 +59,6 @@ echo "        source ${ROOT_DIR}/env.sh"
 echo ""
 echo "    Then:"
 echo "        cd src && python3 bench.py --quick   # fast smoke test"
+echo "        python3 -m pytest -v                  # correctness + adversarial suites"
 echo "        python3 bench.py --trials 60          # full sweep"
 echo "        python3 analyze.py                    # generate charts"
