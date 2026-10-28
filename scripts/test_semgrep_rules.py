@@ -2,6 +2,7 @@ from semgrep_environment import scanner_environment
 import json
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 
 root = Path(__file__).resolve().parent.parent
@@ -18,14 +19,17 @@ with tempfile.TemporaryDirectory(dir=root) as directory:
     for rule, code in fixtures.items():
         (source / f"{rule}.py").write_text(code)
     (source / "safe.py").write_text("import secrets\nnonce = secrets.token_bytes(32)\n")
+    output = Path(directory) / "findings.json"
     result = subprocess.run(
-        ["pysemgrep", "scan", "--config", str(root / "security/semgrep/rules.yml"),
-         "--metrics=off", "--disable-version-check", "--json", "--no-git-ignore", str(source)],
+        [sys.executable, "-m", "semgrep.console_scripts.pysemgrep", "scan", "--config", str(root / "security/semgrep/rules.yml"),
+         "--metrics=off", "--disable-version-check", "--json", "--output", str(output), "--no-git-ignore", str(source)],
         check=False, capture_output=True, text=True, cwd=directory, env=scanner_environment(),
     )
     if result.returncode not in (0, 1):
         raise RuntimeError(result.stderr or result.stdout)
-    report = json.loads(result.stdout)
+    if not output.exists() or not output.read_text().strip():
+        raise RuntimeError(f"Semgrep produced no JSON: {result.stderr}")
+    report = json.loads(output.read_text())
     if report.get("errors"):
         raise RuntimeError(report["errors"])
     found = {finding["check_id"].split(".")[-1] for finding in report["results"]}

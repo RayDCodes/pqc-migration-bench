@@ -2,12 +2,13 @@ from semgrep_environment import scanner_environment
 import json
 from pathlib import Path
 import subprocess
+import sys
 
 root = Path(__file__).resolve().parent.parent
 output = root / "artifacts/semgrep.json"
 output.parent.mkdir(exist_ok=True)
 result = subprocess.run([
-    "pysemgrep", "scan", "--config", "security/semgrep/rules.yml", "--metrics=off",
+    sys.executable, "-m", "semgrep.console_scripts.pysemgrep", "scan", "--config", "security/semgrep/rules.yml", "--metrics=off",
     "--disable-version-check", "--strict", "--error", "--json", "--output", str(output),
     "src", "scripts",
 ], cwd=root, env=scanner_environment())
