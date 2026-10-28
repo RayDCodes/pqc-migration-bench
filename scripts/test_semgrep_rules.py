@@ -21,8 +21,10 @@ with tempfile.TemporaryDirectory(dir=root) as directory:
     result = subprocess.run(
         ["pysemgrep", "scan", "--config", str(root / "security/semgrep/rules.yml"),
          "--metrics=off", "--disable-version-check", "--json", "--no-git-ignore", str(source)],
-        check=True, capture_output=True, text=True, cwd=directory, env=scanner_environment(),
+        check=False, capture_output=True, text=True, cwd=directory, env=scanner_environment(),
     )
+    if result.returncode not in (0, 1):
+        raise RuntimeError(result.stderr or result.stdout)
     report = json.loads(result.stdout)
     if report.get("errors"):
         raise RuntimeError(report["errors"])

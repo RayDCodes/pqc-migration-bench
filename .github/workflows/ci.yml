@@ -68,9 +68,11 @@ jobs:
       - name: Run without root privileges or network access
         run: docker run --rm --network none --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m --cap-drop ALL --security-opt no-new-privileges pqc-migration-bench:ci
       - name: Install verified image scanner
-        run: python3 scripts/install_tools.py trivy
+        run: |
+          mkdir -p artifacts
+          python3 scripts/install_tools.py trivy
       - name: Block high and critical image findings
-        run: .tools/trivy image --severity HIGH,CRITICAL --exit-code 1 pqc-migration-bench:ci
+        run: .tools/trivy image --severity HIGH,CRITICAL --exit-code 1 --format json --output artifacts/image-vulnerabilities.json pqc-migration-bench:ci
       - name: Generate image inventory
         if: ${{ !cancelled() }}
         run: .tools/trivy image --format cyclonedx --output image-sbom.cdx.json pqc-migration-bench:ci
@@ -79,7 +81,9 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: container-inventory
-          path: image-sbom.cdx.json
+          path: |
+            image-sbom.cdx.json
+            artifacts/image-vulnerabilities.json
           retention-days: 7
           if-no-files-found: warn
 

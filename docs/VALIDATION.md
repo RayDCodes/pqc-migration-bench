@@ -47,7 +47,9 @@ Historical data in `results/` remains unmodified. Its original backend cannot be
 
 ## Verification still needed in the deployment environment
 
-No Docker daemon is available locally, so the image build, isolated container smoke test, image vulnerability scan, and image inventory are defined as GitHub-hosted CI checks rather than claimed local successes. OS package vulnerabilities are evaluated there and can legitimately fail the gate. No image has been published.
+No Docker daemon is available locally. The [first GitHub-hosted run](https://github.com/RayDCodes/pqc-migration-bench/actions/runs/40626513527) successfully built the image and ran its isolated non-root smoke test, then blocked the Debian 12 image on 59 high and two critical OS findings. The follow-up moves both stages to a verified Debian 13 Python image digest and updates OS packages before installing minimal dependencies. No image has been published. The image gate remains enabled with no vulnerability suppressions.
+
+That first run also passed real cryptography tests, policy checks, and CodeQL. It exposed an expected-findings exit-code difference in the Semgrep fixture test and a missing output directory when an earlier step failed. The follow-up accepts scanner exit codes zero or one only while still requiring all expected findings and no scanner errors, and initializes reports before any scanner can fail. GitHub execution after the follow-up is recorded separately rather than inferred from the local checks.
 
 Terraform source was scanned, but Terraform init/validate/plan/apply was not run locally. The plan JSON used by custom policy tests is synthetic and labeled accordingly. A real deployment must check its actual resolved complete plan, commit an appropriate provider lockfile, use reviewed access roles, and secure remote state. No AWS resources or accounts were changed.
 
