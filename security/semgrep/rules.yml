@@ -1,0 +1,39 @@
+rules:
+  - id: no-runtime-security-assert
+    languages: [python]
+    severity: ERROR
+    message: Use an explicit exception for a security check; python -O removes assertions.
+    pattern-either:
+      - pattern: assert $CONDITION
+      - pattern: assert $CONDITION, $MESSAGE
+    paths:
+      include: [src/]
+  - id: no-shell-execution
+    languages: [python]
+    severity: ERROR
+    message: Pass an argument list with shell=False instead of executing a shell string.
+    patterns:
+      - pattern-either:
+          - pattern: subprocess.$FUNC(..., shell=True, ...)
+          - pattern: os.system(...)
+  - id: no-dynamic-evaluation
+    languages: [python]
+    severity: ERROR
+    message: Do not execute input as Python code; parse a defined data format instead.
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: exec(...)
+  - id: no-insecure-random-for-keys
+    languages: [python]
+    severity: ERROR
+    message: Use secrets or the cryptographic library for protocol randomness.
+    pattern: random.$FUNC(...)
+    paths:
+      include: [src/]
+  - id: no-crypto-fallback
+    languages: [python]
+    severity: ERROR
+    message: Missing cryptographic backends must raise an error, not select a fallback.
+    pattern-regex: '(?i)\b(?:class\s+_?Fallback\w*|return\s+_?Fallback\w*\s*\()'
+    paths:
+      include: [src/]

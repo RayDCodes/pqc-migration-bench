@@ -1,61 +1,83 @@
-"""
-Authenticated PQC handshake: ML-KEM (FIPS 203) key exchange with the
-server's ephemeral KEM public key signed under ML-DSA (FIPS 204).
+import hashlib
+import hmac
+import secrets
 
-handshake_pqc.py establishes confidentiality but not authenticity --
-nothing stops a man-in-the-middle from swapping the KEM public key in
-transit. This module adds the piece TLS gets from certificates: the
-client verifies a signature over the KEM public key before trusting it.
+from oqs_compat import KeyEncapsulation, Signature
+from common import (
+    ByteCounter, ProtocolError, SocketLike, hkdf_derive,
+    pack_fields, recv_msg, send_msg, unpack_fields,
+)
 
-Wire protocol (3 messages, 1.5 round trips):
-    server -> client : sig_public_key
-    server -> client : kem_public_key || signature(kem_public_key)
-    client -> server : kem_ciphertext
-"""
-from oqs_compat import KeyEncapsulation
-from oqs import Signature
+HANDSHAKE_LABEL = b"pqc-bench mlkem-signed v2"
+NONCE_BYTES = 32
 
-from common import SocketLike, send_msg, recv_msg, hkdf_derive, ByteCounter  # noqa: E402
 
-HANDSHAKE_LABEL = b"pqc-bench mlkem-signed v1"
+def signed_message(kem_mechanism, sig_mechanism, challenge, kem_public_key):
+    return pack_fields(
+        HANDSHAKE_LABEL, kem_mechanism.encode(), sig_mechanism.encode(),
+        challenge, kem_public_key,
+    )
+
+
+def session_key(secret, message, ciphertext):
+    transcript_hash = hashlib.sha256(pack_fields(message, ciphertext)).digest()
+    return hkdf_derive(secret, HANDSHAKE_LABEL + transcript_hash)
 
 
 def server_handshake(
-    conn: SocketLike, counter: ByteCounter, kem_mechanism: str, sig_mechanism: str
+    conn: SocketLike, counter: ByteCounter, kem_mechanism: str,
+    sig_mechanism: str, signer,
 ) -> bytes:
-    with Signature(sig_mechanism) as sig, KeyEncapsulation(kem_mechanism) as kem:
-        sig_pk = sig.generate_keypair()
-        counter.note_send(send_msg(conn, sig_pk))
+    challenge = recv_msg(conn)
+    counter.note_recv(4 + len(challenge))
+    if len(challenge) != NONCE_BYTES:
+        raise ProtocolError("invalid client challenge length")
 
-        kem_pk = kem.generate_keypair()
-        signature = sig.sign(kem_pk)
-        counter.note_send(send_msg(conn, kem_pk))
-        counter.note_send(send_msg(conn, signature))
+    with KeyEncapsulation(kem_mechanism) as kem:
+        kem_public_key = kem.generate_keypair()
+        message = signed_message(kem_mechanism, sig_mechanism, challenge, kem_public_key)
+        response = pack_fields(kem_public_key, signer.sign(message))
+        counter.note_send(send_msg(conn, response))
 
-        ct = recv_msg(conn)
-        counter.note_recv(4 + len(ct))
+        ciphertext = recv_msg(conn)
+        counter.note_recv(4 + len(ciphertext))
+        key = session_key(kem.decap_secret(ciphertext), message, ciphertext)
 
-        shared_secret = kem.decap_secret(ct)
-        return hkdf_derive(shared_secret, HANDSHAKE_LABEL)
+    finished = hmac.digest(key, b"server finished" + hashlib.sha256(message).digest(), "sha256")
+    counter.note_send(send_msg(conn, finished))
+    return key
 
 
 def client_handshake(
-    conn: SocketLike, counter: ByteCounter, kem_mechanism: str, sig_mechanism: str
+    conn: SocketLike, counter: ByteCounter, kem_mechanism: str,
+    sig_mechanism: str, trusted_signing_key: bytes,
 ) -> bytes:
-    with Signature(sig_mechanism) as sig, KeyEncapsulation(kem_mechanism) as kem:
-        sig_pk = recv_msg(conn)
-        counter.note_recv(4 + len(sig_pk))
+    if not trusted_signing_key:
+        raise ValueError("an independently provisioned signing key is required")
 
-        kem_pk = recv_msg(conn)
-        counter.note_recv(4 + len(kem_pk))
+    challenge = secrets.token_bytes(NONCE_BYTES)
+    counter.note_send(send_msg(conn, challenge))
+    response = recv_msg(conn)
+    counter.note_recv(4 + len(response))
+    kem_public_key, signature = unpack_fields(response, 2)
+    message = signed_message(kem_mechanism, sig_mechanism, challenge, kem_public_key)
 
-        signature = recv_msg(conn)
-        counter.note_recv(4 + len(signature))
+    with Signature(sig_mechanism) as verifier:
+        if len(trusted_signing_key) != verifier.length_public_key:
+            raise ProtocolError("invalid trusted signing key length")
+        if len(signature) != verifier.length_signature:
+            raise ProtocolError("invalid signature length")
+        if not verifier.verify(message, signature, trusted_signing_key):
+            raise ProtocolError("signature verification failed")
 
-        if not sig.verify(kem_pk, signature, sig_pk):
-            raise ValueError("signature verification failed -- kem_pk may be tampered")
+    with KeyEncapsulation(kem_mechanism) as kem:
+        ciphertext, secret = kem.encap_secret(kem_public_key)
+    counter.note_send(send_msg(conn, ciphertext))
+    key = session_key(secret, message, ciphertext)
 
-        ct, shared_secret = kem.encap_secret(kem_pk)
-        counter.note_send(send_msg(conn, ct))
-
-        return hkdf_derive(shared_secret, HANDSHAKE_LABEL)
+    finished = recv_msg(conn)
+    counter.note_recv(4 + len(finished))
+    expected = hmac.digest(key, b"server finished" + hashlib.sha256(message).digest(), "sha256")
+    if not hmac.compare_digest(finished, expected):
+        raise ProtocolError("server key confirmation failed")
+    return key

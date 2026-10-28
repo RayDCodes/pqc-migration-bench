@@ -1,0 +1,73 @@
+name: Reusable security guardrails
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: Static analysis dependencies and secrets
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+      - name: Install locked analysis dependencies
+        run: python -m pip install --require-hashes -r security/requirements.txt
+      - name: Install verified scanners
+        run: python scripts/install_tools.py trivy
+      - name: Check workflow security settings
+        run: python scripts/check_workflows.py
+      - name: Verify custom Semgrep rules
+        run: python scripts/test_semgrep_rules.py
+      - name: Static analysis
+        run: python scripts/run_semgrep.py
+      - name: Secrets scan
+        if: ${{ !cancelled() }}
+        run: .tools/trivy fs --scanners secret --exit-code 1 .
+      - name: Dependency vulnerability gate
+        if: ${{ !cancelled() }}
+        run: .tools/trivy fs --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --format json --output artifacts/dependencies.json .
+      - name: Generate CycloneDX inventory
+        if: ${{ !cancelled() }}
+        run: .tools/trivy fs --format cyclonedx --output artifacts/sbom.cdx.json .
+      - name: Upload scan evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: security-evidence
+          path: artifacts/
+          retention-days: 7
+          if-no-files-found: warn
+
+  policy:
+    name: Infrastructure policy tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --require-hashes -r security/requirements.txt
+      - run: python scripts/install_tools.py conftest trivy actionlint
+      - name: Validate Actions syntax
+        run: .tools/actionlint
+      - name: Rego unit tests
+        run: .tools/conftest verify --policy security/policy
+      - name: Safe and unsafe policy fixtures
+        run: python scripts/test_policies.py
+      - name: Check actual workload manifests
+        run: .tools/conftest test deploy/kubernetes --policy security/policy
+      - name: Scan actual infrastructure source
+        run: |
+          .tools/trivy config --severity HIGH,CRITICAL --exit-code 1 infra/terraform
+          .tools/trivy config --severity HIGH,CRITICAL --exit-code 1 deploy/kubernetes

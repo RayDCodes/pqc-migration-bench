@@ -1,0 +1,12 @@
+scan:
+  skip-dirs:
+    - .git
+    - .venv
+    - .security-current-venv
+    - .security-venv
+    - .tools
+    - .cache
+    - artifacts
+    - liboqs
+    - liboqs-python
+    - liboqs-install

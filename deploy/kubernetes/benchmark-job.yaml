@@ -1,0 +1,54 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pqc-benchmark
+  labels:
+    app: pqc-benchmark
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 300
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app: pqc-benchmark
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: benchmark
+          image: pqc-migration-bench:local
+          imagePullPolicy: Never
+          args: ["--quick", "--out", "/results/smoke.csv"]
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "128Mi"
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+          volumeMounts:
+            - name: temporary
+              mountPath: /tmp
+            - name: results
+              mountPath: /results
+      volumes:
+        - name: temporary
+          emptyDir:
+            sizeLimit: 64Mi
+        - name: results
+          emptyDir:
+            sizeLimit: 64Mi

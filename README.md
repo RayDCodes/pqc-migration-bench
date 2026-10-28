@@ -1,141 +1,113 @@
-# PQC Migration Benchmark: Classical vs Post-Quantum vs Hybrid vs Signed Key Exchange
+# PQC migration benchmark with security guardrails
 
-This project benchmarks classical ECDH (X25519), post-quantum ML-KEM (FIPS 203 / Kyber), hybrid X25519+ML-KEM, and ML-DSA-signed ML-KEM key exchange. Each mode runs as a real handshake over TCP sockets, built on [liboqs](https://github.com/open-quantum-safe/liboqs) and Python's `cryptography` library.
+A Python research harness comparing X25519, ML-KEM, hybrid X25519 plus ML-KEM, and ML-DSA authenticated ML-KEM over real localhost TCP sockets. The project also demonstrates how to test security failures and check source code, dependencies, container images, and infrastructure changes before merge.
 
-## Why this matters
+This is a small experimental protocol, not TLS 1.3 or a production encryption library. No application data is encrypted. Use an established TLS implementation for deployed systems. Open Quantum Safe itself positions liboqs as research and prototyping software: https://openquantumsafe.org/liboqs/security.html.
 
-NIST recently finalized the first post-quantum cryptography standards (FIPS 203/204/205), and the urgency behind that isn't really about quantum computers existing today. It's "harvest now, decrypt later": an adversary can record encrypted traffic now and decrypt it retroactively once a cryptographically relevant quantum computer exists. For data with a long confidentiality shelf life, medical records, infrastructure credentials, state secrets, that threat is already live regardless of when the hardware actually shows up.
+## What changed
 
-That's why most organizations are moving to hybrid key exchange (classical plus PQC combined) rather than jumping straight to pure PQC. You need both primitives broken to lose confidentiality, which is a meaningfully higher bar. Chrome/BoringSSL and OpenSSH already ship hybrid X25519+ML-KEM by default.
+| Original behavior | Current behavior | Evidence |
+| --- | --- | --- |
+| Missing liboqs silently selected a non-cryptographic KEM substitute | Missing native library or bindings raises an error; no simulated backend | `tests/test_protocol.py` |
+| Signed mode accepted a signing key sent by the same untrusted peer | Client requires a public key provisioned independently of the socket | `tests/test_signed_security.py` |
+| Signature covered only the ephemeral KEM key | Signed content includes protocol version, algorithm names, a fresh client challenge, and KEM key | Replay, modification, and algorithm substitution tests |
+| No protocol-level server key confirmation | Client verifies an HMAC produced with the derived session key | Invalid Finished test |
+| Unbounded frame lengths and blocking sockets | 64 KiB frame limit, checked field and KEM sizes, socket and thread deadlines | Framing and failure tests |
+| Key agreement checked with `assert` | Explicit runtime error survives `python -O` | Optimized-Python mismatch test |
+| Mutable upstream builds and no run provenance | Source commits, action commits, scanner archive hashes, Python dependency hashes, and run metadata | `security/toolchain.json`, lockfiles, metadata JSON |
 
-What I wanted to actually measure was what that migration costs, in handshake latency and bytes on the wire. And once key exchange is covered, what does the other half of a real handshake cost, actually proving you're talking to the server you think you are?
+The original six tests passed in an environment without liboqs because they exercised the substitute. Passing a correctness test is therefore insufficient evidence that the intended cryptography was executed. The substitute is now removed entirely, including from benchmarks and tests.
 
-This project started after reading Rios et al., "[Toward the Quantum-Safe Web: Benchmarking Post-Quantum TLS](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=10844321)" (IEEE Network, 2025), which benchmarks full TLS 1.3 handshakes across NIST PQC standards using OpenSSL/liboqs/oqs-provider in Docker. This got even more interesting once I started interning on Wells Fargo's cybersecurity team, where I saw up close how a large financial institution is actually approaching the move to post-quantum cryptography.
+## Protocols and trust
 
-## What's actually being measured
+| Mode | Key material | Peer authentication |
+| --- | --- | --- |
+| classical | X25519, then HKDF-SHA256 | None; vulnerable to an active intermediary |
+| pqc | ML-KEM-512, 768, or 1024, then HKDF-SHA256 | None; vulnerable to an active intermediary |
+| hybrid | X25519 and ML-KEM secrets combined with HKDF-SHA256 | None; this is an experimental combiner |
+| signed v2 | ML-KEM, ML-DSA-65 signature, transcript-bound HKDF, server Finished HMAC | Server authentication relative to an independently trusted signing key |
 
-This isn't a full TLS 1.3 implementation, just a minimal handshake protocol built directly on `oqs` (for ML-KEM and ML-DSA) and `cryptography` (for X25519). That keeps the comparison focused on the primitives themselves instead of burying them inside a full TLS stack.
+Signed v2 sends a client challenge, a single server response containing the KEM key and signature, client ciphertext, and server Finished. It does not send a signing key for the client to trust. The harness generates a signing identity and passes its public key directly to the client before starting the timed handshake, modeling provisioning through a trusted channel. Production key distribution, revocation, rotation, certificates, and client authentication are not implemented.
 
-Four modes:
+The signature authenticates the server's KEM key and the fresh challenge. The KDF additionally binds the ciphertext. The Finished message demonstrates possession of the derived key; it is particularly useful because an invalid ML-KEM ciphertext can yield a different secret through implicit rejection instead of raising an exception. An in-process key equality check remains a useful benchmark invariant, but does not establish remote identity.
 
-| Mode          | Protects                        | Server → Client                                       | Client → Server                     |
-| ------------- | --------------------------------- | -------------------------------------------------------- | -------------------------------------- |
-| **classical** | Confidentiality only               | X25519 pubkey                                             | X25519 pubkey                          |
-| **pqc**       | Confidentiality only               | ML-KEM pubkey                                              | ML-KEM ciphertext                      |
-| **hybrid**    | Confidentiality only               | X25519 pubkey ‖ ML-KEM pubkey                              | X25519 pubkey ‖ ML-KEM ciphertext      |
-| **signed**    | Confidentiality and authenticity   | ML-DSA pubkey, then ML-KEM pubkey ‖ ML-DSA signature       | ML-KEM ciphertext                      |
+## Run locally
 
-The first three modes only give you confidentiality. Nothing stops a man-in-the-middle from swapping the key material mid-transit, which is the same gap you'd have without TLS certificates. Signed mode closes it: the server signs its ephemeral ML-KEM public key with ML-DSA-65, and the client verifies that signature before trusting the key. This step tends to get left out of KEM-only PQC benchmarks, and it turned out to matter quite a bit once I measured it.
-
-Every handshake:
-
-1. Spins up a real TCP server thread on `127.0.0.1`
-2. Connects a real client socket to it
-3. Times wall-clock from the client's first byte sent to deriving its final key
-4. Asserts both sides derived an identical session key, this is the correctness check, and a mismatch fails loudly rather than silently
-5. Records handshake time and total wire bytes
-
-To separate cryptographic compute cost from network cost, every socket gets wrapped in a `DelayedSocket` that injects configurable one-way latency (0 / 20 / 75 ms), standing in for localhost, same-region, and cross-region-ish conditions.
-
-## Results
-
-All charts and raw data live in `results/`. Each full run covers 60 trials per configuration across 4 modes, 3 ML-KEM security levels, and 3 latency tiers.
-
-### 1. Compute cost is small and roughly comparable across modes, except signing
-
-At 0ms simulated latency, classical X25519 averages about 0.29ms. ML-KEM alone comes in close behind it, 0.26-0.29ms depending on security level, not meaningfully faster or slower than classical despite being a completely different primitive. Hybrid mode, doing both operations, lands around 0.51-0.59ms, roughly the sum of the two as you'd expect. Adding ML-DSA signing pushes it further, to about 0.71-0.77ms, still under a millisecond, but clearly the most expensive of the four on pure compute.
-
-### 2. Wire bytes scale the way you'd expect, and signing changes that a lot
-
-Classical X25519 is 72 bytes round trip. ML-KEM-768 alone runs about 2,280 bytes, roughly 32x larger. Hybrid X25519+ML-KEM-768 comes to 2,352 bytes, close to the sum of both. Add ML-DSA-65 signing and it jumps to about 7,549 bytes, more than 3x hybrid mode and over 100x classical. Most of that increase is the ML-DSA public key and signature themselves, which run into the kilobytes even at NIST security level 3.
-
-### 3. Signed mode doesn't just cost more bytes, it costs an extra network round trip
-
-This was the most surprising result. Classical, PQC, and hybrid modes all scale with network latency exactly as expected, one round trip, so total handshake time is about 2x the simulated one-way latency (about 40.5ms at 20ms latency, about 150.8ms at 75ms latency). Signed mode doesn't follow that pattern. At the same latencies, it takes about 81.3ms and 301.5ms respectively, almost exactly double. That points to signed mode requiring two network round trips instead of one, likely because the server sends its ML-DSA public key as a separate message before sending the signed ML-KEM key, rather than bundling both into a single flight.
-
-On a fast local network this barely registers. But on any link with real latency, satellite, cellular edge, cross-region, this means the authentication step doesn't just add a few kilobytes, it doubles the network cost of the whole handshake. That's a much bigger deal for real-world deployment planning than the byte overhead alone suggests.
-
-### 1. Compute cost still isn't where the overhead lives
-
-At 0ms simulated latency, classical X25519 averages around 0.29ms. ML-KEM alone comes in close behind it, 0.26-0.29ms depending on security level, not meaningfully faster or slower than classical despite being a completely different kind of primitive. Hybrid mode, doing both operations, lands around 0.51-0.59ms, roughly the sum of the two. Adding ML-DSA signing pushes it further, to around 0.71-0.77ms, still well under a millisecond, but clearly the most expensive of the four on pure compute.
-
-### 2. The real cost is on the wire, and signing changes that story considerably
-
-Classical X25519 is 72 bytes round trip. ML-KEM-768 alone runs about 2,280 bytes, roughly 32x larger. Hybrid X25519+ML-KEM-768 comes to 2,352 bytes, close to the sum of both. Add ML-DSA-65 signing and it jumps to about 7,549 bytes, more than 3x hybrid mode and well over 100x classical. Most of that increase is the ML-DSA public key and signature themselves, which run into the kilobytes even at NIST security level 3.
-
-### 3. Signed mode doesn't just cost more bytes, it costs an extra network round trip
-
-Classical, PQC, and hybrid all scale with network latency the way you'd expect for a single round trip, about 40.5ms total at 20ms simulated latency, about 150.8ms at 75ms. Signed mode breaks that pattern: at the same latencies it takes about 81.3ms and 301.5ms, almost exactly double. That points to signed mode needing two network round trips instead of one, most likely because the server sends its ML-DSA public key as a separate message before sending the signed ML-KEM key, rather than bundling both into a single flight.
-
-At 0ms latency this barely shows up. But on any link with real latency, satellite, cellular edge, cross-region, this means the authentication step doesn't just add kilobytes, it doubles the network cost of the whole handshake. That's a bigger deal for real-world deployment planning than the byte overhead alone would suggest.
-
-## What this means for a real migration
-
-- On typical internet-facing services, hybrid PQC's wire overhead alone probably isn't your bottleneck. Network RTT and TLS record processing will dwarf it, which lines up with what Cloudflare and Google have reported from real hybrid PQC rollouts at scale.
-- Hybrid, not pure PQC, is still the right default for the key exchange side of a migration. The cost gap between pure ML-KEM and hybrid is small enough not to matter much.
-- Authentication is where the real migration cost shows up, and it's worse than a byte-count comparison suggests. Swapping ECDSA or RSA certificates for ML-DSA isn't just a multi-kilobyte tax, in this implementation it costs an entire extra network round trip. On high-latency links that matters more than the raw byte overhead does. Worth investigating whether the ML-DSA public key and signature could be bundled into the same message flight as the ML-KEM key instead of sent separately, since that round trip may not be structurally necessary.
-
-## Getting it running
-
-There's one real gotcha here worth calling out up front: `oqs`, the Python bindings for liboqs, needs the underlying C liboqs library actually built and available on your system. Installing the Python package alone doesn't give you that, it just installs the wrapper. Skip this step and the first time you try to import `oqs`, you'll hit `RuntimeError: No oqs shared libraries found`.
-
-Clone the repo:
+Use Linux or WSL, Python 3.12, Git, a C compiler, CMake, Ninja, and OpenSSL development headers. On Ubuntu, install OS build prerequisites with `sudo apt-get install build-essential cmake ninja-build libssl-dev python3-venv`.
 
 ```bash
-git clone https://github.com/RayDCodes/pqc-migration-bench.git
-cd pqc-migration-bench
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --require-hashes -r requirements.txt
+./setup.sh
+python -m pytest
+python -O -m pytest tests/test_handshakes.py -k key_mismatch
+python src/bench.py --quick --out artifacts/smoke.csv
+python src/analyze.py --input artifacts/smoke.csv --out-dir artifacts/plots
 ```
 
-Set up a virtual environment:
+`setup.sh` builds both native liboqs and the Python bindings from the exact commits in `security/toolchain.json`. The build includes all three ML-KEM levels and ML-DSA-65. It requires a virtual environment and does not install into system Python. The wrapper checks for the native library before importing the Python bindings, avoiding their automatic installer when the library is absent.
+
+`--quick` performs 10 measured trials for each of 8 configurations, plus one excluded warmup each: 80 measured rows. A full `python src/bench.py --out artifacts/full.csv` performs 60 trials for each of 30 configurations: 1,800 measured rows. `--trials` changes the full-run count and must be positive.
+
+## Read the measurements correctly
+
+The clock measures client handshake execution, including socket reads, scheduling, and cryptographic work. Zero injected delay is a loopback measurement, not isolated CPU-only cryptographic latency. Server identity key generation occurs before the signed-mode timer. The unsigned modes finish when the client derives its key; signed v2 additionally waits for server key confirmation.
+
+`DelayedSocket` sleeps before every `sendall`. This is a per-send delay model, not a packet-level network simulator. The original signed mode made three separate server sends, so its apparent doubled latency was partly a simulator artifact; it did not demonstrate that adding a signature inherently adds a network round trip. The new server bundles the KEM key and signature. Signed v2 has four causally dependent messages because it adds freshness and confirmation, so its timing is not directly comparable to the original signed protocol.
+
+Each CSV has a companion `.metadata.json` recording protocol version, real backend versions, Python/platform, code revision, working-tree state, trial counts, timing scope, and latency model. The analysis script rejects missing or incompatible metadata by default and reports median and nearest-rank p95 alongside mean and standard deviation.
+
+The committed `results/` directory is preserved as historical protocol v1 evidence. It does not record the backend or prove authenticated identity. Do not combine it with v2 data or present the original signing claim as verified. `--allow-legacy` lets the analysis script read old data deliberately; it does not validate the old run or change its protocol semantics.
+
+## Security automation
+
+`CI` runs on pull requests, pushes to main, a weekly schedule, and manual dispatch. It performs:
+
+- Real native cryptography tests, rejection tests, and a small benchmark.
+- A reusable security workflow with local Semgrep rules, Trivy dependency and secrets scans, CycloneDX inventory, OPA/Conftest policies, and tests of deliberately unsafe configurations.
+- A Docker build and isolated smoke run, followed by a high/critical image vulnerability gate and image inventory.
+- A final `Security gate` that fails if tests, security checks, or container checks fail or are skipped.
+
+The existing CodeQL workflow is retained and pinned. Every external action uses a full commit SHA; checkout does not retain credentials. Workflows use `pull_request`, read-only default tokens, timeouts, and no cloud credentials. Only the CodeQL job requests the security-events permission needed to upload its analysis. Scanner archives are checked against committed SHA256 values; live vulnerability databases remain necessary for current findings.
+
+**A failing workflow blocks merging only after repository rules require its status.** Configure `Security gate` as a required check and require review of workflow and policy changes. CODEOWNERS is included, but owner review also requires repository rule enforcement. These administrative settings are not changed by this code. Semgrep emits file and line annotations in checks; this implementation does not post bot review comments or demonstrate adoption across five repositories.
+
+To run the tools locally on Linux x86_64:
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+python -m pip install --require-hashes -r security/requirements.txt
+python scripts/install_tools.py conftest trivy actionlint
+python scripts/check_workflows.py
+.tools/actionlint
+python scripts/test_semgrep_rules.py
+python scripts/run_semgrep.py
+.tools/conftest verify --policy security/policy
+python scripts/test_policies.py
+.tools/conftest test deploy/kubernetes --policy security/policy
+.tools/trivy fs --scanners secret --exit-code 1 .
+.tools/trivy fs --scanners vuln --severity HIGH,CRITICAL --exit-code 1 .
+.tools/trivy config --severity HIGH,CRITICAL --exit-code 1 infra/terraform
+.tools/trivy config --severity HIGH,CRITICAL --exit-code 1 deploy/kubernetes
 ```
 
-Install the liboqs Python bindings along with the native library. On Linux, including WSL and GitHub Codespaces, this usually just works as long as you have a build toolchain installed:
+Keep security tools in a separate virtual environment when updating them. Update `.in` files and regenerate lockfiles using `pip-compile --generate-hashes --strip-extras`; review upgrades rather than replacing pins with floating versions. Semgrep's local rules are project-specific checks, not comprehensive application-security coverage. A source SBOM is an inventory, not proof of safety, and native source-built libraries need separate commit/version provenance.
+
+## Containers and infrastructure examples
+
+The Dockerfile uses a digest-pinned Python base, a separate native build stage, and numeric non-root execution. It needs no listening port or cloud credentials. CI runs it with no external network, a read-only root filesystem, dropped capabilities, and a bounded temporary filesystem. No image is published.
 
 ```bash
-sudo apt install build-essential cmake ninja-build -y
-pip install git+https://github.com/open-quantum-safe/liboqs-python.git
+docker build --build-arg SOURCE_REVISION="$(git rev-parse HEAD)" -t pqc-migration-bench:local .
+docker run --rm --network none --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m --cap-drop ALL --security-opt no-new-privileges pqc-migration-bench:local
 ```
 
-On native Windows, this same command tends to fail since there's no C build toolchain by default, and even installing Visual Studio Build Tools plus CMake doesn't always get you a clean build. If you run into this, the path of least resistance is developing inside WSL or a GitHub Codespace instead of fighting the native Windows build, which is what I ended up doing.
+`deploy/kubernetes/` contains a batch Job and deny-all ingress/egress NetworkPolicy. The Job has non-root execution, RuntimeDefault seccomp, no token mount, no added capabilities, read-only root, requests and limits, and bounded writable volumes. It uses a local image explicitly; load the built image into a development cluster before using it. Policy supports Pods, Deployments, StatefulSets, DaemonSets, Jobs, and CronJobs, and checks init and ephemeral containers too. NetworkPolicy enforcement depends on the cluster's network plugin. No cluster has been provisioned or tested by adding these files.
 
-Verify the install actually worked:
+`infra/terraform/` is an optional AWS results bucket example with all public access blocks, KMS encryption and rotation, versioning, enforced bucket ownership, and HTTPS-only access. Nothing uploads results or runs Terraform apply. The Terraform plan JSON under `tests/fixtures/` is explicitly synthetic: it tests policy behavior without credentials. In a real deployment, evaluate the actual complete `terraform show -json` plan with Conftest. The custom policy conservatively rejects unknown public access settings and missing bucket controls; it is not a general AWS compliance framework. Trivy also scans actual Terraform source in CI.
 
-```bash
-python -c "import oqs; print(oqs.get_enabled_sig_mechanisms())"
-```
+## Presentation and next work
 
-You're looking for `ML-DSA-65` somewhere in that list.
+Start with [the presentation guide](docs/PRESENTATION.md), [the threat model](docs/THREAT_MODEL.md), and [the validation record](docs/VALIDATION.md). These distinguish original work, changes in this branch, verified results, and future work.
 
-Run a quick smoke test:
-
-```bash
-cd src
-python bench.py --quick --out ../results/smoke_test.csv
-```
-
-This runs a small, fast subset (10 trials, 2 latency tiers, one mechanism) just to confirm everything's wired up correctly.
-
-Run the full sweep:
-
-```bash
-python bench.py --out ../results/handshake_results.csv
-```
-
-This covers all 4 modes across 3 ML-KEM security levels and 3 latency tiers at 60 trials each, and takes a few minutes to finish.
-
-Regenerate the charts and summary:
-
-```bash
-python analyze.py
-```
-
-## Limitations and what's next
-
-- This is a key-exchange and signature microbenchmark, not a full TLS 1.3 implementation. There are no certificates, no record layer, no cipher suite negotiation. That isolation is intentional, but it means these numbers aren't a drop-in substitute for benchmarking an actual PQC-enabled OpenSSL or BoringSSL stack.
-- All trials run on localhost with simulated, sleep-based latency, which doesn't account for packet loss or jitter.
-- Next up: a real TLS 1.3 handshake using OpenSSL's PQC provider for a closer comparison against this minimal-protocol version, and benchmarking signature verification cost specifically under repeated connection scenarios like session resumption, since that's where the per-handshake ML-DSA tax would add up fastest.
+Next useful experiments are actual TLS 1.3 measurements, packet-level delay/loss simulation, persisted and rotated signing identities, tests on dedicated hardware, and a reviewed release pipeline with signed image provenance. AWS remediation workflows would be a separate project: automatically changing cloud resources is not needed to make this benchmark safer.

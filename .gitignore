@@ -14,3 +14,10 @@ env/
 
 # OS
 .DS_Store
+.tools/
+.cache/
+artifacts/
+*.egg-info/
+
+.security-venv/
+.security-current-venv/

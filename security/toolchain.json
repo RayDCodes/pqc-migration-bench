@@ -1,0 +1,25 @@
+{
+  "liboqs": {
+    "version": "0.16.0",
+    "commit": "5a1a854b0dc9f2141bdc771c555ee60c37950183"
+  },
+  "liboqs-python": {
+    "version": "0.16.0",
+    "commit": "c6378cd5c8db74c0adf34ddcfbb96ee9c99f8061"
+  },
+  "conftest": {
+    "version": "v0.71.1",
+    "url": "https://github.com/open-policy-agent/conftest/releases/download/v0.71.1/conftest_0.71.1_Linux_x86_64.tar.gz",
+    "sha256": "c3f6b2a753bd56e377a1e51a95ae3e057f926f2e9139f7d5b5dfbbaf810f7985"
+  },
+  "trivy": {
+    "version": "v0.76.1",
+    "url": "https://github.com/aquasecurity/trivy/releases/download/v0.76.1/trivy_0.76.1_Linux-64bit.tar.gz",
+    "sha256": "c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0"
+  },
+  "actionlint": {
+    "version": "v1.7.12",
+    "url": "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz",
+    "sha256": "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8"
+  }
+}

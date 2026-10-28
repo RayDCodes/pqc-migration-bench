@@ -21,7 +21,7 @@ from cryptography.hazmat.primitives.asymmetric.x25519 import (
     X25519PrivateKey,
     X25519PublicKey,
 )
-from common import SocketLike, send_msg, recv_msg, hkdf_derive, ByteCounter  # noqa: E402
+from common import SocketLike, send_msg, recv_msg, hkdf_derive, ByteCounter, ProtocolError
 
 HANDSHAKE_LABEL = b"pqc-bench hybrid x25519+mlkem v1"
 
@@ -31,7 +31,11 @@ def _pack(a: bytes, b: bytes) -> bytes:
 
 
 def _unpack(blob: bytes):
+    if len(blob) < 4:
+        raise ProtocolError("truncated hybrid message")
     (alen,) = struct.unpack(">I", blob[:4])
+    if alen != 32 or len(blob) <= 4 + alen:
+        raise ProtocolError("invalid hybrid public key or missing KEM field")
     return blob[4 : 4 + alen], blob[4 + alen :]
 
 
