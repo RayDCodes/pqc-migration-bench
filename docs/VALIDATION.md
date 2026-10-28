@@ -7,7 +7,7 @@ This record describes checks actually performed in the preparation environment. 
 | Check | Observed result |
 | --- | --- |
 | Original tests before modification, without native liboqs | Six passed using the non-cryptographic fallback |
-| Updated Python suite with real liboqs | 49 passed |
+| Core Python suite with real liboqs before the rehearsal runner | 49 passed at the verified baseline |
 | Mismatch regression under `python -O` | Passed; explicit exception remains active |
 | Full v2 benchmark | 1,800 measured handshakes, 30 configurations, 60 samples each, plus 30 excluded warmups |
 | Quick benchmark | 80 measured handshakes, eight configurations, ten samples each |
@@ -41,15 +41,21 @@ These values come from `docs/evidence/plots/summary.csv`. Classical uses X25519;
 
 Signed v2 includes server authentication relative to a trusted key, a fresh challenge, and server key confirmation. Unsigned modes do not provide those guarantees and finish earlier in the protocol. The difference cannot be attributed solely to the signature primitive.
 
-The companion metadata identifies real liboqs 0.16.0, liboqs-python 0.16.0, Python 3.12.14, and cryptography 50.0.2. It records the base Git revision with `working_tree_dirty: true` because these measurements were collected from the changes before committing. Its SHA256 over the Python source files matches the current source; documentation and generated results are not part of that source hash.
+The companion metadata identifies real liboqs 0.16.0, liboqs-python 0.16.0, Python 3.12.14, and cryptography 50.0.2. It records the base Git revision with `working_tree_dirty: true` because these measurements were collected from the changes before committing. Its SHA256 covers the recorded files in src and matches that source snapshot; documentation, scripts, tests, and generated results are outside that source hash. The rehearsal command checks the source files against the recorded digest before displaying the saved results.
 
 Historical data in `results/` remains unmodified. Its original backend cannot be established from that data, and its signed mode did not establish a trusted server identity. It should not be used to claim a verified intermediary-attack defense.
 
-## Verification still needed in the deployment environment
+## Verified GitHub execution
 
-No Docker daemon is available locally. The [first GitHub-hosted run](https://github.com/RayDCodes/pqc-migration-bench/actions/runs/40626513527) successfully built the image and ran its isolated non-root smoke test, then blocked the Debian 12 image on 59 high and two critical OS findings. The second run used an updated Debian 13 base and still found 44 high/critical OS entries with no listed fixed version; its Python package scan was clean. The next revision moves both stages to a digest-verified Alpine Python base and uses its native toolchain and OpenSSL packages, then repeats the build, isolated smoke test, and image scan. The [third GitHub-hosted run](https://github.com/RayDCodes/pqc-migration-bench/actions/runs/40627430033) passed all three container checks, including the high/critical image gate and inventory generation. Changing libc is a compatibility trade-off that must be tested, not assumed. No image has been published. The image gate remains enabled with no vulnerability suppressions.
+The complete [CI run for the implementation baseline](https://github.com/RayDCodes/pqc-migration-bench/actions/runs/40627861432) and its [CodeQL run](https://github.com/RayDCodes/pqc-migration-bench/actions/runs/40627861399) both completed successfully for commit `31a8c8418c1144fc60e9c4e69130db95bddff250`. This includes native cryptography tests, negative tests, static analysis, dependency and secrets scans, infrastructure policies, the isolated container run, image vulnerability checking, inventories, and the aggregate gate. This is an observed run result, not a guarantee about future vulnerability databases.
 
-That first run also passed real cryptography tests, policy checks, and CodeQL. It exposed a hosted Semgrep invocation problem in the fixture test and a missing output directory when an earlier step failed. The follow-up invokes Semgrep through the same Python interpreter that imports its package, reads a dedicated JSON report instead of relying on console output, accepts exit codes zero or one only while still requiring all expected findings and no scanner errors, and initializes reports before any scanner can fail. GitHub execution after the follow-up is recorded separately rather than inferred from the local checks.
+The rehearsal runner adds ten fixture-based regression cases for source drift, incomplete or duplicated trials, invalid durations, an unexpected backend, and unknown configurations. The current PR's CI artifacts are authoritative for the updated total. The committed `tests.xml` remains evidence of the earlier 49-test core run rather than being rewritten to imply it contains the new tests.
+
+## Deployment boundaries
+
+No Docker daemon is available locally. The [first GitHub-hosted run](https://github.com/RayDCodes/pqc-migration-bench/actions/runs/40626513527) successfully built the image and ran its isolated non-root smoke test, then blocked the Debian 12 image on 59 high and two critical OS findings. The second run used an updated Debian 13 base and still found 44 high/critical OS entries with no listed fixed version; its Python package scan was clean. The final implementation uses a digest-verified Alpine Python base with its native toolchain and OpenSSL packages. The [third GitHub-hosted run](https://github.com/RayDCodes/pqc-migration-bench/actions/runs/40627430033) passed all three container checks, including the high/critical image gate and inventory generation. Changing libc is a compatibility trade-off that must be tested, not assumed. No image has been published. The image gate remains enabled with no vulnerability suppressions.
+
+That first run also passed real cryptography tests, policy checks, and CodeQL. It exposed a hosted Semgrep invocation problem in the fixture test and a missing output directory when an earlier step failed. The follow-up invokes Semgrep through the same Python interpreter that imports its package, reads a dedicated JSON report instead of relying on console output, accepts exit codes zero or one only while still requiring all expected findings and no scanner errors, and initializes reports before any scanner can fail. The complete successful GitHub run is linked above.
 
 Terraform source was scanned, but Terraform init/validate/plan/apply was not run locally. The plan JSON used by custom policy tests is synthetic and labeled accordingly. A real deployment must check its actual resolved complete plan, commit an appropriate provider lockfile, use reviewed access roles, and secure remote state. No AWS resources or accounts were changed.
 

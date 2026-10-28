@@ -108,6 +108,8 @@ docker run --rm --network none --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64
 
 ## Presentation and next work
 
-Start with [the presentation guide](docs/PRESENTATION.md), [the threat model](docs/THREAT_MODEL.md), and [the validation record](docs/VALIDATION.md). These distinguish original work, changes in this branch, verified results, and future work.
+Start with [the timed walkthrough](docs/RUN_OF_SHOW.md), [the presentation guide](docs/PRESENTATION.md), [the threat model](docs/THREAT_MODEL.md), and [the validation record](docs/VALIDATION.md). These distinguish original work, changes in this branch, verified results, and future work.
 
 Next useful experiments are actual TLS 1.3 measurements, packet-level delay/loss simulation, persisted and rotated signing identities, tests on dedicated hardware, and a reviewed release pipeline with signed image provenance. AWS remediation workflows would be a separate project: automatically changing cloud resources is not needed to make this benchmark safer.
+
+For a short rehearsal, run `python scripts/rehearse.py --part evidence` with standard Python. This reads and validates the committed v2 snapshot without making network calls or running a new benchmark. Protocol and policy modes execute the existing checks in the prepared runtime or security environment; see the walkthrough for prerequisites. Changing files under `src/` can invalidate the snapshot's recorded source digest, in which case evidence mode stops and asks for regenerated evidence.

@@ -84,6 +84,10 @@ Custom policies are focused and explainable, but cover fewer cases than a full p
 
 Next steps are actual TLS 1.3 experiments, a packet-level delay/loss model, identity lifecycle work, and dedicated benchmark hardware. Signed image releases and real cloud plan checks would follow only when there is a deployment to protect.
 
+## Rehearsal runner
+
+Follow the timed [walkthrough](RUN_OF_SHOW.md) for a format-neutral eight minute presentation. Use `python scripts/rehearse.py --part evidence` to display recorded results without installing the cryptographic backend or running a new benchmark. Use protocol and policy modes in their prepared environments to execute the existing rejection checks.
+
 ## Five minute live demonstration
 
 1. Run `python -m pytest tests/test_protocol.py -k missing_backend -v`. Explain that missing cryptography stops execution.
