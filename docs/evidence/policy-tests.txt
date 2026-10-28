@@ -1,0 +1,42 @@
+PASS safe job
+PASS missing pod template
+PASS List cannot bypass workload checks
+PASS privileged
+PASS allowPrivilegeEscalation
+PASS readOnlyRootFilesystem
+PASS runAsNonRoot
+PASS runAsUser
+PASS capabilities
+PASS capabilities
+PASS seccompProfile
+PASS invalid memory limit 0
+PASS invalid memory limit 0Mi
+PASS invalid memory limit None
+PASS hostNetwork
+PASS hostPID
+PASS hostIPC
+PASS automountServiceAccountToken
+PASS initContainers
+PASS ephemeralContainers
+PASS python
+PASS python:latest
+PASS hostPath
+PASS safe Pod
+PASS safe Deployment
+PASS safe StatefulSet
+PASS safe DaemonSet
+PASS safe Job
+PASS safe CronJob
+PASS safe Terraform plan fixture
+PASS block_public_acls
+PASS unknown block_public_acls
+PASS block_public_policy
+PASS unknown block_public_policy
+PASS ignore_public_acls
+PASS unknown ignore_public_acls
+PASS restrict_public_buckets
+PASS unknown restrict_public_buckets
+PASS public ACL
+PASS missing public access block
+PASS missing encryption
+PASS invalid encryption

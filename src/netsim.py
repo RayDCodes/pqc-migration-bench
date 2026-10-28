@@ -21,10 +21,10 @@ class DelayedSocket:
     def sendall(self, data: Any, flags: int = 0, /) -> None:
         if self._delay > 0:
             time.sleep(self._delay)
-        return self._sock.sendall(data)
+        return self._sock.sendall(data, flags)
 
     def recv(self, n: int, flags: int = 0, /) -> bytes:
-        return self._sock.recv(n)
+        return self._sock.recv(n, flags)
 
     def close(self):
         self._sock.close()

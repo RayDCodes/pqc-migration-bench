@@ -1,0 +1,7 @@
+/.github/ @RayDCodes
+/security/ @RayDCodes
+/scripts/bootstrap.py @RayDCodes
+/scripts/install_tools.py @RayDCodes
+/requirements*.txt @RayDCodes
+/src/handshake_signed.py @RayDCodes
+/security/requirements.txt @RayDCodes

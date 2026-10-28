@@ -1,91 +1,84 @@
-"""Compatibility layer for ML-KEM / liboqs access.
-
-This project expects the Open Quantum Safe Python bindings, but the
-environment may instead have an unrelated `oqs` package installed from PyPI.
-When the real bindings are unavailable, we fall back to a small in-process
-shim that preserves the same API shape for the handshakes and tests.
-"""
-from __future__ import annotations
-
-import hashlib
+import ctypes.util
+import importlib
 import os
 from pathlib import Path
-from typing import Any
+from common import ProtocolError
 
-_default_install = Path(__file__).resolve().parent.parent / "liboqs-install"
-if "OQS_INSTALL_PATH" not in os.environ and _default_install.exists():
-    os.environ["OQS_INSTALL_PATH"] = str(_default_install)
-
-try:  # pragma: no cover - exercised at runtime
-    import oqs as _real_oqs  # type: ignore
-except Exception:  # pragma: no cover - fallback path
-    _real_oqs = None
+KEM_MECHANISMS = ("ML-KEM-512", "ML-KEM-768", "ML-KEM-1024")
+SIG_MECHANISM = "ML-DSA-65"
 
 
-def _mechanism_size(mechanism: str) -> int:
-    level = mechanism.rsplit("-", 1)[-1]
-    if level == "512":
-        return 768
-    if level == "768":
-        return 1152
-    if level == "1024":
-        return 1536
-    return 1024
+class BackendUnavailable(RuntimeError):
+    pass
 
 
-class _FallbackKeyEncapsulation:
-    def __init__(self, mechanism: str):
-        self.mechanism = mechanism
-        self._secret = os.urandom(32)
+class _CheckedKEM:
+    def __init__(self, implementation):
+        self.implementation = implementation
 
-    def __enter__(self) -> "_FallbackKeyEncapsulation":
+    def __enter__(self):
+        self.implementation.__enter__()
         return self
 
-    def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> bool:
-        return False
+    def __exit__(self, *args):
+        return self.implementation.__exit__(*args)
 
-    def generate_keypair(self) -> bytes:
-        size = _mechanism_size(self.mechanism)
-        self._secret = os.urandom(32)
-        label = self.mechanism.encode("utf-8")
-        pk = self._secret + b"\x00" * max(0, size - len(self._secret)) + label
-        return pk[:size]
+    def generate_keypair(self):
+        return self.implementation.generate_keypair()
 
-    def encap_secret(self, pk: bytes) -> tuple[bytes, bytes]:
-        size = _mechanism_size(self.mechanism)
-        label = self.mechanism.encode("utf-8")
-        secret_material = pk[:32] if len(pk) >= 32 else pk
-        shared_secret = hashlib.sha256(secret_material + label).digest()
-        ct = hashlib.sha256(pk + label).digest() * ((size // 32) + 1)
-        return ct[:size], shared_secret
+    def encap_secret(self, public_key):
+        if len(public_key) != self.implementation.length_public_key:
+            raise ProtocolError("invalid ML-KEM public key length")
+        return self.implementation.encap_secret(public_key)
 
-    def decap_secret(self, ct: bytes) -> bytes:
-        label = self.mechanism.encode("utf-8")
-        return hashlib.sha256(self._secret + label).digest()
+    def decap_secret(self, ciphertext):
+        if len(ciphertext) != self.implementation.length_ciphertext:
+            raise ProtocolError("invalid ML-KEM ciphertext length")
+        return self.implementation.decap_secret(ciphertext)
 
 
-class KeyEncapsulation:
-    def __new__(cls, mechanism: str):
-        if _real_oqs is not None:
-            key_encapsulation_cls = getattr(_real_oqs, "KeyEncapsulation", None)
-            if callable(key_encapsulation_cls):
-                return key_encapsulation_cls(mechanism)
-        return super().__new__(cls)
+def require_backend():
+    install = Path(os.environ.get(
+        "OQS_INSTALL_PATH", Path(__file__).resolve().parent.parent / "liboqs-install"
+    ))
+    native_paths = [
+        install / directory / name
+        for directory in ("lib", "lib64", "bin")
+        for name in ("liboqs.so", "liboqs.dylib", "oqs.dll")
+    ]
+    local_library = next((str(path) for path in native_paths if path.is_file()), None)
+    library = local_library or ctypes.util.find_library("oqs")
+    if not library:
+        raise BackendUnavailable("Native liboqs missing; run ./setup.sh. No fallback is permitted.")
+    try:
+        ctypes.CDLL(library)
+    except OSError as error:
+        raise BackendUnavailable("Native liboqs cannot be loaded; automatic installation is disabled") from error
+    os.environ.setdefault("OQS_INSTALL_PATH", str(install))
+    try:
+        backend = importlib.import_module("oqs")
+        if not callable(getattr(backend, "KeyEncapsulation", None)):
+            raise BackendUnavailable("Installed oqs is not the Open Quantum Safe bindings")
+        if not callable(getattr(backend, "Signature", None)):
+            raise BackendUnavailable("Open Quantum Safe signature support is missing")
+        return backend
+    except (ImportError, OSError, RuntimeError) as error:
+        raise BackendUnavailable("Real liboqs bindings unavailable; run ./setup.sh") from error
 
-    def __init__(self, mechanism: str):
-        self._impl = _FallbackKeyEncapsulation(mechanism)
 
-    def __enter__(self) -> "_FallbackKeyEncapsulation":
-        return self._impl.__enter__()
+def KeyEncapsulation(mechanism: str):
+    if mechanism not in KEM_MECHANISMS:
+        raise ValueError(f"Unsupported KEM mechanism: {mechanism}")
+    backend = require_backend()
+    if mechanism not in backend.get_enabled_kem_mechanisms():
+        raise BackendUnavailable(f"liboqs does not enable {mechanism}")
+    return _CheckedKEM(backend.KeyEncapsulation(mechanism))
 
-    def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> bool:
-        return self._impl.__exit__(exc_type, exc, tb)
 
-    def generate_keypair(self) -> bytes:
-        return self._impl.generate_keypair()
-
-    def encap_secret(self, pk: bytes) -> tuple[bytes, bytes]:
-        return self._impl.encap_secret(pk)
-
-    def decap_secret(self, ct: bytes) -> bytes:
-        return self._impl.decap_secret(ct)
+def Signature(mechanism: str):
+    if mechanism != SIG_MECHANISM:
+        raise ValueError(f"Unsupported signature mechanism: {mechanism}")
+    backend = require_backend()
+    if mechanism not in backend.get_enabled_sig_mechanisms():
+        raise BackendUnavailable(f"liboqs does not enable {mechanism}")
+    return backend.Signature(mechanism)

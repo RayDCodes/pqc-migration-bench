@@ -1,175 +1,194 @@
-"""
-Benchmark harness.
-
-For each (mode, security_level, simulated_latency) combination, spins up
-a real TCP server on localhost in a background thread, connects a client,
-runs the handshake N times, and records:
-    - wall-clock handshake time (ms)
-    - bytes sent by the client
-    - bytes sent by the server
-    - total bytes on the wire
-
-Modes:
-    classical -> X25519 only (today's baseline)
-    pqc       -> ML-KEM only (pure post-quantum)
-    hybrid    -> X25519 + ML-KEM combined (what's actually being deployed)
-
-Usage:
-    python3 bench.py --trials 200 --out ../results/handshake_results.csv
-"""
 import argparse
+from contextlib import ExitStack
 import csv
+import hashlib
+import importlib.metadata
+import json
+import os
+import platform
 import socket
+import subprocess
 import threading
 import time
-import sys
 from pathlib import Path
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
-SRC_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(SRC_DIR))
 from netsim import DelayedSocket
 from common import ByteCounter
+from oqs_compat import KEM_MECHANISMS, SIG_MECHANISM, Signature, require_backend
 import handshake_classical
 import handshake_pqc
 import handshake_hybrid
 import handshake_signed
 
-__all__ = ["DelayedSocket"]
-
-MECHANISMS = ["ML-KEM-512", "ML-KEM-768", "ML-KEM-1024"]
-SIG_MECHANISM = "ML-DSA-65"
+ROOT_DIR = Path(__file__).resolve().parent.parent
+MECHANISMS = list(KEM_MECHANISMS)
 LATENCIES_MS = [0, 20, 75]
 TRIALS_DEFAULT = 60
+SOCKET_TIMEOUT = 5.0
+HANDSHAKES = {
+    "classical": handshake_classical,
+    "pqc": handshake_pqc,
+    "hybrid": handshake_hybrid,
+    "signed": handshake_signed,
+}
 
-def run_server(mode, mechanism, delay_s, ready_event, result_holder, port_holder):
-    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    srv.bind(("127.0.0.1", 0))
-    port_holder.append(srv.getsockname()[1])
-    srv.listen(1)
-    ready_event.set()
 
-    conn, _ = srv.accept()
-    dconn = DelayedSocket(conn, delay_s)
-    counter = ByteCounter()
-
-    if mode == "classical":
-        key = handshake_classical.server_handshake(dconn, counter)
-    elif mode == "pqc":
-        key = handshake_pqc.server_handshake(dconn, counter, mechanism)
-    elif mode == "hybrid":
-        key = handshake_hybrid.server_handshake(dconn, counter, mechanism)
-    elif mode == "signed":
-        key = handshake_signed.server_handshake(dconn, counter, mechanism, SIG_MECHANISM)
-    else:
-        raise ValueError(mode)
-
-    result_holder["server_key"] = key
-    result_holder["server_bytes_sent"] = counter.sent
-    result_holder["server_bytes_recv"] = counter.received
-    conn.close()
-    srv.close()
+def run_server(mode, mechanism, delay_s, ready_event, result_holder, port_holder, signer):
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+            server.settimeout(SOCKET_TIMEOUT)
+            server.bind(("127.0.0.1", 0))
+            server.listen(1)
+            port_holder.append(server.getsockname()[1])
+            ready_event.set()
+            conn, _ = server.accept()
+            with conn:
+                conn.settimeout(SOCKET_TIMEOUT)
+                conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                wrapped = DelayedSocket(conn, delay_s)
+                counter = ByteCounter()
+                args = () if mode == "classical" else (mechanism,)
+                if mode == "signed":
+                    args += (SIG_MECHANISM, signer)
+                key = HANDSHAKES[mode].server_handshake(wrapped, counter, *args)
+                result_holder.update(server_key=key, counter=counter)
+    except Exception as error:
+        result_holder["error"] = error
+    finally:
+        ready_event.set()
 
 
 def run_one_handshake(mode: str, mechanism: str, delay_ms: int):
-    delay_s = delay_ms / 1000.0
-    ready_event = threading.Event()
-    result_holder = {}
-    port_holder = []
+    if mode not in HANDSHAKES:
+        raise ValueError(f"Unsupported mode: {mode}")
+    if not 0 <= delay_ms <= 1000:
+        raise ValueError("delay_ms must be between 0 and 1000")
+    if mode != "classical":
+        if mechanism not in KEM_MECHANISMS:
+            raise ValueError(f"Unsupported KEM mechanism: {mechanism}")
+        require_backend()
 
-    t = threading.Thread(
-        target=run_server,
-        args=(mode, mechanism, delay_s, ready_event, result_holder, port_holder),
-        daemon=True,
-    )
-    t.start()
-    ready_event.wait()
-    port = port_holder[0]
+    with ExitStack() as context:
+        signer = None
+        trusted_key = None
+        if mode == "signed":
+            signer = context.enter_context(Signature(SIG_MECHANISM))
+            trusted_key = signer.generate_keypair()
 
-    client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_sock.connect(("127.0.0.1", port))
-    dclient = DelayedSocket(client_sock, delay_s)
-    counter = ByteCounter()
+        ready = threading.Event()
+        holder = {}
+        ports = []
+        thread = threading.Thread(
+            target=run_server,
+            args=(mode, mechanism, delay_ms / 1000, ready, holder, ports, signer),
+            daemon=True,
+        )
+        thread.start()
+        if not ready.wait(SOCKET_TIMEOUT):
+            raise TimeoutError("server startup timed out")
+        if "error" in holder:
+            raise RuntimeError("server startup failed") from holder["error"]
 
-    start = time.perf_counter()
-    if mode == "classical":
-        client_key = handshake_classical.client_handshake(dclient, counter)
-    elif mode == "pqc":
-        client_key = handshake_pqc.client_handshake(dclient, counter, mechanism)
-    elif mode == "hybrid":
-        client_key = handshake_hybrid.client_handshake(dclient, counter, mechanism)
-    elif mode == "signed":
-        client_key = handshake_signed.client_handshake(dclient, counter, mechanism, SIG_MECHANISM)
-    else:
-        raise ValueError(mode)
-    elapsed_ms = (time.perf_counter() - start) * 1000.0
+        try:
+            with socket.create_connection(("127.0.0.1", ports[0]), SOCKET_TIMEOUT) as conn:
+                conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                wrapped = DelayedSocket(conn, delay_ms / 1000)
+                counter = ByteCounter()
+                args = () if mode == "classical" else (mechanism,)
+                if mode == "signed":
+                    args += (SIG_MECHANISM, trusted_key)
+                start = time.perf_counter()
+                client_key = HANDSHAKES[mode].client_handshake(wrapped, counter, *args)
+                elapsed_ms = (time.perf_counter() - start) * 1000
+        finally:
+            thread.join(SOCKET_TIMEOUT + 1)
+        if thread.is_alive():
+            raise TimeoutError("server handshake did not finish")
+        if "error" in holder:
+            raise RuntimeError("server handshake failed") from holder["error"]
+        if client_key != holder["server_key"]:
+            raise RuntimeError("handshake key mismatch")
+        server_counter = holder["counter"]
+        if counter.sent != server_counter.received or counter.received != server_counter.sent:
+            raise RuntimeError("inconsistent handshake byte counts")
+        return elapsed_ms, counter.sent + counter.received
 
-    client_sock.close()
-    t.join()
 
-    assert client_key == result_holder["server_key"], "handshake key mismatch!"
-
-    total_bytes = (
-        counter.sent
-        + counter.received
-        + result_holder["server_bytes_sent"]
-        + result_holder["server_bytes_recv"]
-    ) // 2  # sent+recv double counts the same wire bytes from both ends
-
-    return elapsed_ms, total_bytes
+def write_metadata(out_path, trials, jobs):
+    backend = require_backend()
+    source_hash = hashlib.sha256()
+    for path in sorted((ROOT_DIR / "src").glob("*.py")):
+        source_hash.update(path.name.encode() + b"\0" + path.read_bytes() + b"\0")
+    revision = os.environ.get("PQC_BENCH_REVISION", "unknown")
+    dirty = None
+    if (ROOT_DIR / ".git").exists():
+        revision = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=ROOT_DIR, check=True,
+            capture_output=True, text=True,
+        ).stdout.strip()
+        dirty = bool(subprocess.run(
+            ["git", "status", "--porcelain"], cwd=ROOT_DIR, check=True,
+            capture_output=True, text=True,
+        ).stdout)
+    metadata = {
+        "protocol_version": 2,
+        "backend": "liboqs",
+        "liboqs_version": backend.oqs_version(),
+        "liboqs_python_version": backend.oqs_python_version(),
+        "python": platform.python_version(),
+        "platform": platform.platform(),
+        "cryptography": importlib.metadata.version("cryptography"),
+        "git_commit": revision,
+        "working_tree_dirty": dirty,
+        "python_source_sha256": source_hash.hexdigest(),
+        "trials_per_configuration": trials,
+        "configurations": len(jobs),
+        "latency_model": "sleep before each sendall, not packet-level RTT",
+        "timing": "client handshake only; signing identity provisioned before timer",
+        "authentication": "signed v2 pins an out-of-band public key; no PKI or client identity",
+    }
+    out_path.with_suffix(".metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--trials", type=int, default=TRIALS_DEFAULT)
-    ap.add_argument("--out", type=str, default="results/handshake_results.csv")
-    ap.add_argument("--quick", action="store_true", help="Small run for a fast smoke test")
-    args = ap.parse_args()
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--trials", type=int, default=TRIALS_DEFAULT)
+    parser.add_argument("--out", default="results/handshake_results.csv")
+    parser.add_argument("--quick", action="store_true")
+    args = parser.parse_args()
+    if args.trials < 1:
+        parser.error("--trials must be positive")
+    require_backend()
     trials = 10 if args.quick else args.trials
-    latencies = [0, 50] if args.quick else LATENCIES_MS
+    latencies = [0, 20] if args.quick else LATENCIES_MS
     mechanisms = ["ML-KEM-768"] if args.quick else MECHANISMS
-
+    jobs = [("classical", "n/a", latency) for latency in latencies]
+    jobs += [
+        (mode, mechanism, latency)
+        for mode in ("pqc", "hybrid", "signed")
+        for mechanism in mechanisms for latency in latencies
+    ]
     rows = []
-    jobs = [("classical", "n/a", lat) for lat in latencies]
-    jobs += [("pqc", m, lat) for m in mechanisms for lat in latencies]
-    jobs += [("hybrid", m, lat) for m in mechanisms for lat in latencies]
-    jobs += [("signed", m, lat) for m in mechanisms for lat in latencies]
-
-    for mode, mechanism, lat in jobs:
-        print(f"[bench] mode={mode:9s} mech={mechanism:12s} latency={lat:4d}ms  ", end="", flush=True)
-        times, sizes = [], []
-        # one warmup run to avoid first-call JIT/import overhead skewing results
-        run_one_handshake(mode, mechanism, lat)
+    for mode, mechanism, latency in jobs:
+        run_one_handshake(mode, mechanism, latency)
         for _ in range(trials):
-            t_ms, nbytes = run_one_handshake(mode, mechanism, lat)
-            times.append(t_ms)
-            sizes.append(nbytes)
-        for t_ms, nbytes in zip(times, sizes):
-            rows.append(
-                {
-                    "mode": mode,
-                    "mechanism": mechanism,
-                    "sim_latency_ms": lat,
-                    "handshake_time_ms": round(t_ms, 4),
-                    "wire_bytes": nbytes,
-                }
-            )
-        avg = sum(times) / len(times)
-        avg_bytes = sum(sizes) / len(sizes)
-        print(f"avg={avg:7.3f}ms  avg_bytes={avg_bytes:.0f}")
+            elapsed, wire_bytes = run_one_handshake(mode, mechanism, latency)
+            rows.append({
+                "mode": mode, "mechanism": mechanism, "sim_latency_ms": latency,
+                "handshake_time_ms": round(elapsed, 4), "wire_bytes": wire_bytes,
+            })
+        print(f"[bench] {mode} {mechanism} delay={latency}ms trials={trials}", flush=True)
 
     out_path = Path(args.out)
     if not out_path.is_absolute():
         out_path = ROOT_DIR / out_path
     out_path.parent.mkdir(parents=True, exist_ok=True)
-
-    with out_path.open("w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["mode", "mechanism", "sim_latency_ms", "handshake_time_ms", "wire_bytes"])
+    write_metadata(out_path, trials, jobs)
+    with out_path.open("w", newline="") as output:
+        writer = csv.DictWriter(output, fieldnames=list(rows[0]))
         writer.writeheader()
         writer.writerows(rows)
-    print(f"\n[bench] wrote {len(rows)} rows to {out_path}")
+    print(f"[bench] wrote {len(rows)} rows to {out_path}")
 
 
 if __name__ == "__main__":

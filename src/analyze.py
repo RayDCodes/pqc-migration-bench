@@ -5,7 +5,10 @@ Reads results/handshake_results.csv and produces:
     - results/latency_vs_network.png (handshake time across simulated RTTs)
     - results/summary.csv            (aggregated mean/stdev table)
 """
+import argparse
 import csv
+import json
+import math
 import statistics as stats
 from collections import defaultdict
 from pathlib import Path
@@ -22,7 +25,7 @@ LABELS = {
     ("classical", "n/a"): "Classical\nX25519",
     ("pqc", "ML-KEM-768"): "ML-KEM-768",
     ("hybrid", "ML-KEM-768"): "Hybrid\nX25519+768",
-    ("signed", "ML-KEM-768"): "Signed\nX25519+768",
+    ("signed", "ML-KEM-768"): "Signed\nML-KEM-768",
 }
 
 ORDER = list(LABELS.keys())
@@ -75,8 +78,8 @@ def chart_compute_only(groups):
         colors.append(COLORS[mode])
 
     bars = ax.bar(xs, means, yerr=errs, capsize=4, color=colors)
-    ax.set_ylabel("Handshake time (ms), 0ms simulated network latency")
-    ax.set_title("Compute-only handshake cost: classical vs PQC vs hybrid vs signed")
+    ax.set_ylabel("Client handshake time (ms), zero injected delay")
+    ax.set_title("Loopback handshake latency by mode")
     for b, m in zip(bars, means):
         ax.text(b.get_x() + b.get_width() / 2, b.get_height(), f"{m:.3f}ms", ha="center", va="bottom", fontsize=8)
     fig.tight_layout()
@@ -117,9 +120,9 @@ def chart_vs_network(groups):
             ys.append(stats.mean([r["handshake_time_ms"] for r in rows]) if rows else None)
         ax.plot(latencies, ys, marker="o", label=LABELS[key].replace("\n", " "), color=COLORS[mode])
 
-    ax.set_xlabel("Simulated one-way network latency (ms)")
+    ax.set_xlabel("Injected delay before each sendall (ms)")
     ax.set_ylabel("Total handshake time (ms)")
-    ax.set_title("Handshake time is dominated by network RTT, not crypto cost\n(ML-KEM-768 shown as representative level for PQC/hybrid/signed)")
+    ax.set_title("Client handshake latency under the per-send delay model\n(ML-KEM-768 shown for PQC, hybrid, and signed)")
     ax.legend()
     ax.grid(alpha=0.3)
     fig.tight_layout()
@@ -130,7 +133,7 @@ def chart_vs_network(groups):
 def write_summary(groups):
     with (RESULTS_DIR / "summary.csv").open("w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["mode", "mechanism", "sim_latency_ms", "mean_ms", "stdev_ms", "mean_wire_bytes", "n"])
+        w.writerow(["mode", "mechanism", "sim_latency_ms", "mean_ms", "stdev_ms", "mean_wire_bytes", "n", "p50_ms", "p95_ms"])
         for key in sorted(groups.keys()):
             rows = groups[key]
             times = [r["handshake_time_ms"] for r in rows]
@@ -141,14 +144,34 @@ def write_summary(groups):
                     key[2],
                     round(stats.mean(times), 4),
                     round(stats.stdev(times), 4) if len(times) > 1 else 0,
-                    rows[0]["wire_bytes"],
+                    stats.mean(r["wire_bytes"] for r in rows),
                     len(rows),
+                    round(stats.median(times), 4),
+                    round(sorted(times)[math.ceil(0.95 * len(times)) - 1], 4),
                 ]
             )
 
 
 def main():
+    global IN_CSV, RESULTS_DIR
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input", required=True, type=Path)
+    parser.add_argument("--out-dir", required=True, type=Path)
+    parser.add_argument("--allow-legacy", action="store_true")
+    args = parser.parse_args()
+    IN_CSV = args.input
+    RESULTS_DIR = args.out_dir
+    metadata_path = IN_CSV.with_suffix(".metadata.json")
+    if not args.allow_legacy:
+        if not metadata_path.exists():
+            parser.error("missing backend metadata; use --allow-legacy only for historical data")
+        metadata = json.loads(metadata_path.read_text())
+        if metadata.get("backend") != "liboqs" or metadata.get("protocol_version") != 2:
+            parser.error("expected a real liboqs protocol v2 run")
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     rows = load_rows()
+    if not rows:
+        parser.error("input CSV contains no samples")
     groups = aggregate(rows)
     chart_compute_only(groups)
     chart_wire_bytes(groups)

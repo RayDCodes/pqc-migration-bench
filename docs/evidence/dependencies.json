@@ -1,0 +1,1370 @@
+{
+  "SchemaVersion": 2,
+  "Trivy": {
+    "Version": "0.76.1"
+  },
+  "ReportID": "01a18083-da47-7a8a-8a30-cffbae6b8676",
+  "CreatedAt": "2026-10-27T23:18:07.175692823-04:00",
+  "ArtifactID": "sha256:4e0b43301b909432d1f3bb95338f4d58f075e5bff587dec7b4b6b56a67ee922e",
+  "ArtifactName": ".",
+  "ArtifactType": "repository",
+  "Metadata": {
+    "RepoURL": "https://github.com/RayDCodes/pqc-migration-bench.git",
+    "Branch": "security/verified-handshakes-and-ci",
+    "Commit": "84ba86f26005d7d7c7aa9a77adbce9b3d91940ae",
+    "CommitMsg": "Fix typo in README regarding crypto compute cost",
+    "Author": "RayDCodes \u003c88738107+RayDCodes@users.noreply.github.com\u003e",
+    "Committer": "GitHub \u003cnoreply@github.com\u003e"
+  },
+  "Results": [
+    {
+      "Target": "requirements.txt",
+      "Class": "lang-pkgs",
+      "Type": "pip",
+      "Packages": [
+        {
+          "Name": "cffi",
+          "Identifier": {
+            "PURL": "pkg:pypi/cffi@2.1.1",
+            "UID": "d65cb9c859243cef"
+          },
+          "Version": "2.1.1",
+          "Licenses": [
+            "MIT-0"
+          ],
+          "Locations": [
+            {
+              "StartLine": 7,
+              "EndLine": 7
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "contourpy",
+          "Identifier": {
+            "PURL": "pkg:pypi/contourpy@1.4.0",
+            "UID": "7b22fbb9efba694d"
+          },
+          "Version": "1.4.0",
+          "Locations": [
+            {
+              "StartLine": 109,
+              "EndLine": 109
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "cryptography",
+          "Identifier": {
+            "PURL": "pkg:pypi/cryptography@50.0.2",
+            "UID": "e5ebc09ada641cea"
+          },
+          "Version": "50.0.2",
+          "Licenses": [
+            "Apache-2.0 OR BSD-3-Clause"
+          ],
+          "Locations": [
+            {
+              "StartLine": 181,
+              "EndLine": 181
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "cycler",
+          "Identifier": {
+            "PURL": "pkg:pypi/cycler@0.12.1",
+            "UID": "e4f2120154a8d656"
+          },
+          "Version": "0.12.1",
+          "Licenses": [
+            "BSD-3-Clause"
+          ],
+          "Locations": [
+            {
+              "StartLine": 242,
+              "EndLine": 242
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "fonttools",
+          "Identifier": {
+            "PURL": "pkg:pypi/fonttools@4.68.0",
+            "UID": "ed12ea2f83c75ccb"
+          },
+          "Version": "4.68.0",
+          "Locations": [
+            {
+              "StartLine": 246,
+              "EndLine": 246
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "iniconfig",
+          "Identifier": {
+            "PURL": "pkg:pypi/iniconfig@2.3.1",
+            "UID": "a2e28f1f324a599d"
+          },
+          "Version": "2.3.1",
+          "Locations": [
+            {
+              "StartLine": 313,
+              "EndLine": 313
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "kiwisolver",
+          "Identifier": {
+            "PURL": "pkg:pypi/kiwisolver@1.5.1",
+            "UID": "281f017505c2cced"
+          },
+          "Version": "1.5.1",
+          "Locations": [
+            {
+              "StartLine": 317,
+              "EndLine": 317
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "matplotlib",
+          "Identifier": {
+            "PURL": "pkg:pypi/matplotlib@3.11.2",
+            "UID": "13343b4dc8a1114e"
+          },
+          "Version": "3.11.2",
+          "Locations": [
+            {
+              "StartLine": 460,
+              "EndLine": 460
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "numpy",
+          "Identifier": {
+            "PURL": "pkg:pypi/numpy@2.5.4",
+            "UID": "25442f5af24b323e"
+          },
+          "Version": "2.5.4",
+          "Locations": [
+            {
+              "StartLine": 515,
+              "EndLine": 515
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "packaging",
+          "Identifier": {
+            "PURL": "pkg:pypi/packaging@26.3",
+            "UID": "2859a0fbd96820a"
+          },
+          "Version": "26.3",
+          "Licenses": [
+            "Apache-2.0 OR BSD-2-Clause"
+          ],
+          "Locations": [
+            {
+              "StartLine": 585,
+              "EndLine": 585
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "pillow",
+          "Identifier": {
+            "PURL": "pkg:pypi/pillow@13.0.0",
+            "UID": "29d2c3b217fdef7b"
+          },
+          "Version": "13.0.0",
+          "Locations": [
+            {
+              "StartLine": 591,
+              "EndLine": 591
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "pluggy",
+          "Identifier": {
+            "PURL": "pkg:pypi/pluggy@1.7.0",
+            "UID": "5a3a8c56fa81fb51"
+          },
+          "Version": "1.7.0",
+          "Locations": [
+            {
+              "StartLine": 676,
+              "EndLine": 676
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "pycparser",
+          "Identifier": {
+            "PURL": "pkg:pypi/pycparser@3.12",
+            "UID": "f539c29a62d60620"
+          },
+          "Version": "3.12",
+          "Locations": [
+            {
+              "StartLine": 680,
+              "EndLine": 680
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "pygments",
+          "Identifier": {
+            "PURL": "pkg:pypi/pygments@2.21.0",
+            "UID": "b4b406d0bc359faf"
+          },
+          "Version": "2.21.0",
+          "Locations": [
+            {
+              "StartLine": 684,
+              "EndLine": 684
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "pyparsing",
+          "Identifier": {
+            "PURL": "pkg:pypi/pyparsing@3.3.3",
+            "UID": "a4e5cc94a7be9831"
+          },
+          "Version": "3.3.3",
+          "Locations": [
+            {
+              "StartLine": 688,
+              "EndLine": 688
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "pytest",
+          "Identifier": {
+            "PURL": "pkg:pypi/pytest@9.2.0",
+            "UID": "4d20ce16cc4071e5"
+          },
+          "Version": "9.2.0",
+          "Locations": [
+            {
+              "StartLine": 692,
+              "EndLine": 692
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "python-dateutil",
+          "Identifier": {
+            "PURL": "pkg:pypi/python-dateutil@3.0.0",
+            "UID": "50f283e2aa395dc8"
+          },
+          "Version": "3.0.0",
+          "Locations": [
+            {
+              "StartLine": 696,
+              "EndLine": 696
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "six",
+          "Identifier": {
+            "PURL": "pkg:pypi/six@1.17.0",
+            "UID": "a0c50b39e5fbd6a3"
+          },
+          "Version": "1.17.0",
+          "Licenses": [
+            "MIT"
+          ],
+          "Locations": [
+            {
+              "StartLine": 700,
+              "EndLine": 700
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "tzdata",
+          "Identifier": {
+            "PURL": "pkg:pypi/tzdata@2026.5",
+            "UID": "8d54f56ffd8bd4db"
+          },
+          "Version": "2026.5",
+          "Licenses": [
+            "Apache-2.0"
+          ],
+          "Locations": [
+            {
+              "StartLine": 704,
+              "EndLine": 704
+            }
+          ],
+          "AnalyzedBy": "pip"
+        }
+      ]
+    },
+    {
+      "Target": "security/requirements.txt",
+      "Class": "lang-pkgs",
+      "Type": "pip",
+      "Packages": [
+        {
+          "Name": "annotated-types",
+          "Identifier": {
+            "PURL": "pkg:pypi/annotated-types@0.8.0",
+            "UID": "3bb5ea3f91a912ca"
+          },
+          "Version": "0.8.0",
+          "Licenses": [
+            "MIT"
+          ],
+          "Locations": [
+            {
+              "StartLine": 7,
+              "EndLine": 7
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "anyio",
+          "Identifier": {
+            "PURL": "pkg:pypi/anyio@4.15.1",
+            "UID": "cc8a186a18ee0993"
+          },
+          "Version": "4.15.1",
+          "Locations": [
+            {
+              "StartLine": 11,
+              "EndLine": 11
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "attrs",
+          "Identifier": {
+            "PURL": "pkg:pypi/attrs@26.1.0",
+            "UID": "e3035c231ec20751"
+          },
+          "Version": "26.1.0",
+          "Licenses": [
+            "MIT"
+          ],
+          "Locations": [
+            {
+              "StartLine": 19,
+              "EndLine": 19
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "boltons",
+          "Identifier": {
+            "PURL": "pkg:pypi/boltons@21.0.0",
+            "UID": "58dddc03f5054988"
+          },
+          "Version": "21.0.0",
+          "Locations": [
+            {
+              "StartLine": 27,
+              "EndLine": 27
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "bracex",
+          "Identifier": {
+            "PURL": "pkg:pypi/bracex@3.2",
+            "UID": "d856413983b10518"
+          },
+          "Version": "3.2",
+          "Locations": [
+            {
+              "StartLine": 34,
+              "EndLine": 34
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "certifi",
+          "Identifier": {
+            "PURL": "pkg:pypi/certifi@2026.10.23",
+            "UID": "523159503b2a94dc"
+          },
+          "Version": "2026.10.23",
+          "Locations": [
+            {
+              "StartLine": 38,
+              "EndLine": 38
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "cffi",
+          "Identifier": {
+            "PURL": "pkg:pypi/cffi@2.1.1",
+            "UID": "3e137187adcd2606"
+          },
+          "Version": "2.1.1",
+          "Licenses": [
+            "MIT-0"
+          ],
+          "Locations": [
+            {
+              "StartLine": 46,
+              "EndLine": 46
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "charset-normalizer",
+          "Identifier": {
+            "PURL": "pkg:pypi/charset-normalizer@3.5.2",
+            "UID": "e3016f9d7262f23b"
+          },
+          "Version": "3.5.2",
+          "Licenses": [
+            "MIT"
+          ],
+          "Locations": [
+            {
+              "StartLine": 148,
+              "EndLine": 148
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "click",
+          "Identifier": {
+            "PURL": "pkg:pypi/click@8.4.2",
+            "UID": "4b8f30cc270f71b"
+          },
+          "Version": "8.4.2",
+          "Locations": [
+            {
+              "StartLine": 322,
+              "EndLine": 322
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "click-option-group",
+          "Identifier": {
+            "PURL": "pkg:pypi/click-option-group@0.5.9",
+            "UID": "87f1eb6deab74ff4"
+          },
+          "Version": "0.5.9",
+          "Locations": [
+            {
+              "StartLine": 329,
+              "EndLine": 329
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "colorama",
+          "Identifier": {
+            "PURL": "pkg:pypi/colorama@0.4.6",
+            "UID": "36bf1196123d6ba4"
+          },
+          "Version": "0.4.6",
+          "Locations": [
+            {
+              "StartLine": 333,
+              "EndLine": 333
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "cryptography",
+          "Identifier": {
+            "PURL": "pkg:pypi/cryptography@50.0.2",
+            "UID": "778d4c1eaa91653b"
+          },
+          "Version": "50.0.2",
+          "Licenses": [
+            "Apache-2.0 OR BSD-3-Clause"
+          ],
+          "Locations": [
+            {
+              "StartLine": 337,
+              "EndLine": 337
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "exceptiongroup",
+          "Identifier": {
+            "PURL": "pkg:pypi/exceptiongroup@1.2.2",
+            "UID": "670138c40784052d"
+          },
+          "Version": "1.2.2",
+          "Locations": [
+            {
+              "StartLine": 398,
+              "EndLine": 398
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "face",
+          "Identifier": {
+            "PURL": "pkg:pypi/face@26.0.1",
+            "UID": "230ef213fa2810a9"
+          },
+          "Version": "26.0.1",
+          "Locations": [
+            {
+              "StartLine": 402,
+              "EndLine": 402
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "glom",
+          "Identifier": {
+            "PURL": "pkg:pypi/glom@25.12.0",
+            "UID": "ca2352f45cb89078"
+          },
+          "Version": "25.12.0",
+          "Locations": [
+            {
+              "StartLine": 406,
+              "EndLine": 406
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "googleapis-common-protos",
+          "Identifier": {
+            "PURL": "pkg:pypi/googleapis-common-protos@1.76.0",
+            "UID": "ad3d2bfa7a5c51e"
+          },
+          "Version": "1.76.0",
+          "Locations": [
+            {
+              "StartLine": 410,
+              "EndLine": 410
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "h11",
+          "Identifier": {
+            "PURL": "pkg:pypi/h11@0.16.0",
+            "UID": "e1b9ef76352e57bb"
+          },
+          "Version": "0.16.0",
+          "Locations": [
+            {
+              "StartLine": 414,
+              "EndLine": 414
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "httpcore",
+          "Identifier": {
+            "PURL": "pkg:pypi/httpcore@1.0.9",
+            "UID": "a50862fcda90a40"
+          },
+          "Version": "1.0.9",
+          "Locations": [
+            {
+              "StartLine": 420,
+              "EndLine": 420
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "httpx",
+          "Identifier": {
+            "PURL": "pkg:pypi/httpx@0.28.1",
+            "UID": "5ff8562c8e80d405"
+          },
+          "Version": "0.28.1",
+          "Locations": [
+            {
+              "StartLine": 424,
+              "EndLine": 424
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "httpx-sse",
+          "Identifier": {
+            "PURL": "pkg:pypi/httpx-sse@0.4.3",
+            "UID": "97cc75cedcdf4589"
+          },
+          "Version": "0.4.3",
+          "Locations": [
+            {
+              "StartLine": 428,
+              "EndLine": 428
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "idna",
+          "Identifier": {
+            "PURL": "pkg:pypi/idna@3.20",
+            "UID": "70dd061c22dc33c7"
+          },
+          "Version": "3.20",
+          "Locations": [
+            {
+              "StartLine": 432,
+              "EndLine": 432
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "importlib-metadata",
+          "Identifier": {
+            "PURL": "pkg:pypi/importlib-metadata@8.7.1",
+            "UID": "16ff5477df2fb6c1"
+          },
+          "Version": "8.7.1",
+          "Locations": [
+            {
+              "StartLine": 439,
+              "EndLine": 439
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "jsonschema",
+          "Identifier": {
+            "PURL": "pkg:pypi/jsonschema@4.25.1",
+            "UID": "6cc1d9412f652b0b"
+          },
+          "Version": "4.25.1",
+          "Locations": [
+            {
+              "StartLine": 443,
+              "EndLine": 443
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "jsonschema-specifications",
+          "Identifier": {
+            "PURL": "pkg:pypi/jsonschema-specifications@2025.9.1",
+            "UID": "8252027d5acac8a7"
+          },
+          "Version": "2025.9.1",
+          "Locations": [
+            {
+              "StartLine": 449,
+              "EndLine": 449
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "markdown-it-py",
+          "Identifier": {
+            "PURL": "pkg:pypi/markdown-it-py@4.2.0",
+            "UID": "ce96ff8a96cea013"
+          },
+          "Version": "4.2.0",
+          "Locations": [
+            {
+              "StartLine": 453,
+              "EndLine": 453
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "mcp",
+          "Identifier": {
+            "PURL": "pkg:pypi/mcp@1.29.0",
+            "UID": "5805e63960cf1cf3"
+          },
+          "Version": "1.29.0",
+          "Locations": [
+            {
+              "StartLine": 457,
+              "EndLine": 457
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "mdurl",
+          "Identifier": {
+            "PURL": "pkg:pypi/mdurl@0.1.2",
+            "UID": "28fe40c3e16ec7b3"
+          },
+          "Version": "0.1.2",
+          "Locations": [
+            {
+              "StartLine": 461,
+              "EndLine": 461
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "opentelemetry-api",
+          "Identifier": {
+            "PURL": "pkg:pypi/opentelemetry-api@1.37.0",
+            "UID": "3c59f17e12c73126"
+          },
+          "Version": "1.37.0",
+          "Locations": [
+            {
+              "StartLine": 465,
+              "EndLine": 465
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "opentelemetry-exporter-otlp-proto-common",
+          "Identifier": {
+            "PURL": "pkg:pypi/opentelemetry-exporter-otlp-proto-common@1.37.0",
+            "UID": "59db26f7e396827b"
+          },
+          "Version": "1.37.0",
+          "Locations": [
+            {
+              "StartLine": 476,
+              "EndLine": 476
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "opentelemetry-exporter-otlp-proto-http",
+          "Identifier": {
+            "PURL": "pkg:pypi/opentelemetry-exporter-otlp-proto-http@1.37.0",
+            "UID": "9cabfac484da5a9d"
+          },
+          "Version": "1.37.0",
+          "Locations": [
+            {
+              "StartLine": 480,
+              "EndLine": 480
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "opentelemetry-instrumentation",
+          "Identifier": {
+            "PURL": "pkg:pypi/opentelemetry-instrumentation@0.58b0",
+            "UID": "f78e6ceb73eb947b"
+          },
+          "Version": "0.58b0",
+          "Locations": [
+            {
+              "StartLine": 484,
+              "EndLine": 484
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "opentelemetry-instrumentation-requests",
+          "Identifier": {
+            "PURL": "pkg:pypi/opentelemetry-instrumentation-requests@0.58b0",
+            "UID": "47fd70e8f67f56f7"
+          },
+          "Version": "0.58b0",
+          "Locations": [
+            {
+              "StartLine": 490,
+              "EndLine": 490
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "opentelemetry-instrumentation-threading",
+          "Identifier": {
+            "PURL": "pkg:pypi/opentelemetry-instrumentation-threading@0.58b0",
+            "UID": "a5dfae8354c47c18"
+          },
+          "Version": "0.58b0",
+          "Locations": [
+            {
+              "StartLine": 494,
+              "EndLine": 494
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "opentelemetry-proto",
+          "Identifier": {
+            "PURL": "pkg:pypi/opentelemetry-proto@1.37.0",
+            "UID": "c754b94eebe2cef4"
+          },
+          "Version": "1.37.0",
+          "Locations": [
+            {
+              "StartLine": 498,
+              "EndLine": 498
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "opentelemetry-sdk",
+          "Identifier": {
+            "PURL": "pkg:pypi/opentelemetry-sdk@1.37.0",
+            "UID": "c475a1dc9169078"
+          },
+          "Version": "1.37.0",
+          "Locations": [
+            {
+              "StartLine": 504,
+              "EndLine": 504
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "opentelemetry-semantic-conventions",
+          "Identifier": {
+            "PURL": "pkg:pypi/opentelemetry-semantic-conventions@0.58b0",
+            "UID": "b3a4eef0a783336d"
+          },
+          "Version": "0.58b0",
+          "Locations": [
+            {
+              "StartLine": 510,
+              "EndLine": 510
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "opentelemetry-util-http",
+          "Identifier": {
+            "PURL": "pkg:pypi/opentelemetry-util-http@0.58b0",
+            "UID": "be25ab15a7bb0108"
+          },
+          "Version": "0.58b0",
+          "Locations": [
+            {
+              "StartLine": 517,
+              "EndLine": 517
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "packaging",
+          "Identifier": {
+            "PURL": "pkg:pypi/packaging@26.3",
+            "UID": "4dd827f9e273a37"
+          },
+          "Version": "26.3",
+          "Licenses": [
+            "Apache-2.0 OR BSD-2-Clause"
+          ],
+          "Locations": [
+            {
+              "StartLine": 521,
+              "EndLine": 521
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "peewee",
+          "Identifier": {
+            "PURL": "pkg:pypi/peewee@3.19.0",
+            "UID": "6ecb892a842e7f26"
+          },
+          "Version": "3.19.0",
+          "Locations": [
+            {
+              "StartLine": 527,
+              "EndLine": 527
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "protobuf",
+          "Identifier": {
+            "PURL": "pkg:pypi/protobuf@6.33.6",
+            "UID": "f16946ada9f720a3"
+          },
+          "Version": "6.33.6",
+          "Locations": [
+            {
+              "StartLine": 531,
+              "EndLine": 531
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "pycparser",
+          "Identifier": {
+            "PURL": "pkg:pypi/pycparser@3.12",
+            "UID": "545da7cd88a24863"
+          },
+          "Version": "3.12",
+          "Locations": [
+            {
+              "StartLine": 545,
+              "EndLine": 545
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "pydantic",
+          "Identifier": {
+            "PURL": "pkg:pypi/pydantic@2.11.9",
+            "UID": "8ec3c7795f15ca8e"
+          },
+          "Version": "2.11.9",
+          "Locations": [
+            {
+              "StartLine": 549,
+              "EndLine": 549
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "pydantic-core",
+          "Identifier": {
+            "PURL": "pkg:pypi/pydantic-core@2.33.2",
+            "UID": "28c25667740d1526"
+          },
+          "Version": "2.33.2",
+          "Locations": [
+            {
+              "StartLine": 556,
+              "EndLine": 556
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "pydantic-settings",
+          "Identifier": {
+            "PURL": "pkg:pypi/pydantic-settings@2.16.1",
+            "UID": "ef4ac714ba9cf5a1"
+          },
+          "Version": "2.16.1",
+          "Locations": [
+            {
+              "StartLine": 657,
+              "EndLine": 657
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "pygments",
+          "Identifier": {
+            "PURL": "pkg:pypi/pygments@2.21.0",
+            "UID": "a5c20a5b976be30c"
+          },
+          "Version": "2.21.0",
+          "Locations": [
+            {
+              "StartLine": 661,
+              "EndLine": 661
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "pyjwt",
+          "Identifier": {
+            "PURL": "pkg:pypi/pyjwt@2.15.1",
+            "UID": "5ae75d01656becaa"
+          },
+          "Version": "2.15.1",
+          "Locations": [
+            {
+              "StartLine": 665,
+              "EndLine": 665
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "python-dotenv",
+          "Identifier": {
+            "PURL": "pkg:pypi/python-dotenv@1.2.4",
+            "UID": "204a90e54292b57b"
+          },
+          "Version": "1.2.4",
+          "Locations": [
+            {
+              "StartLine": 671,
+              "EndLine": 671
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "python-multipart",
+          "Identifier": {
+            "PURL": "pkg:pypi/python-multipart@0.0.32",
+            "UID": "c92544a912b29647"
+          },
+          "Version": "0.0.32",
+          "Locations": [
+            {
+              "StartLine": 675,
+              "EndLine": 675
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "pyyaml",
+          "Identifier": {
+            "PURL": "pkg:pypi/pyyaml@6.0.3",
+            "UID": "1e7c3cdb866fac6b"
+          },
+          "Version": "6.0.3",
+          "Licenses": [
+            "MIT"
+          ],
+          "Locations": [
+            {
+              "StartLine": 679,
+              "EndLine": 679
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "referencing",
+          "Identifier": {
+            "PURL": "pkg:pypi/referencing@0.37.0",
+            "UID": "2b591eee50595438"
+          },
+          "Version": "0.37.0",
+          "Locations": [
+            {
+              "StartLine": 754,
+              "EndLine": 754
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "requests",
+          "Identifier": {
+            "PURL": "pkg:pypi/requests@2.34.2",
+            "UID": "7b99d7e2164bc332"
+          },
+          "Version": "2.34.2",
+          "Locations": [
+            {
+              "StartLine": 760,
+              "EndLine": 760
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "rich",
+          "Identifier": {
+            "PURL": "pkg:pypi/rich@13.5.3",
+            "UID": "2ebd099c71a46933"
+          },
+          "Version": "13.5.3",
+          "Locations": [
+            {
+              "StartLine": 766,
+              "EndLine": 766
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "rpds-py",
+          "Identifier": {
+            "PURL": "pkg:pypi/rpds-py@2026.9.1",
+            "UID": "b76e889b10d84983"
+          },
+          "Version": "2026.9.1",
+          "Locations": [
+            {
+              "StartLine": 770,
+              "EndLine": 770
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "ruamel-yaml",
+          "Identifier": {
+            "PURL": "pkg:pypi/ruamel-yaml@0.19.1",
+            "UID": "7c4bba76318a1f38"
+          },
+          "Version": "0.19.1",
+          "Locations": [
+            {
+              "StartLine": 902,
+              "EndLine": 902
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "ruamel-yaml-clib",
+          "Identifier": {
+            "PURL": "pkg:pypi/ruamel-yaml-clib@0.2.15",
+            "UID": "bc2db13d371ecb15"
+          },
+          "Version": "0.2.15",
+          "Locations": [
+            {
+              "StartLine": 906,
+              "EndLine": 906
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "semantic-version",
+          "Identifier": {
+            "PURL": "pkg:pypi/semantic-version@2.10.0",
+            "UID": "8650315a1045d338"
+          },
+          "Version": "2.10.0",
+          "Locations": [
+            {
+              "StartLine": 969,
+              "EndLine": 969
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "semgrep",
+          "Identifier": {
+            "PURL": "pkg:pypi/semgrep@1.182.1",
+            "UID": "f739a1010ed0df34"
+          },
+          "Version": "1.182.1",
+          "Locations": [
+            {
+              "StartLine": 973,
+              "EndLine": 973
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "sse-starlette",
+          "Identifier": {
+            "PURL": "pkg:pypi/sse-starlette@3.6.0",
+            "UID": "b09494c38ff51a36"
+          },
+          "Version": "3.6.0",
+          "Locations": [
+            {
+              "StartLine": 983,
+              "EndLine": 983
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "starlette",
+          "Identifier": {
+            "PURL": "pkg:pypi/starlette@1.10.0",
+            "UID": "1402615594ec460a"
+          },
+          "Version": "1.10.0",
+          "Locations": [
+            {
+              "StartLine": 987,
+              "EndLine": 987
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "tomli",
+          "Identifier": {
+            "PURL": "pkg:pypi/tomli@2.4.1",
+            "UID": "2dc45227b06ebb3d"
+          },
+          "Version": "2.4.1",
+          "Locations": [
+            {
+              "StartLine": 993,
+              "EndLine": 993
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "typing-extensions",
+          "Identifier": {
+            "PURL": "pkg:pypi/typing-extensions@4.16.0",
+            "UID": "375c405c74fef8da"
+          },
+          "Version": "4.16.0",
+          "Licenses": [
+            "PSF-2.0"
+          ],
+          "Locations": [
+            {
+              "StartLine": 1042,
+              "EndLine": 1042
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "typing-inspection",
+          "Identifier": {
+            "PURL": "pkg:pypi/typing-inspection@0.4.4",
+            "UID": "26bf085a9ca0c663"
+          },
+          "Version": "0.4.4",
+          "Licenses": [
+            "MIT"
+          ],
+          "Locations": [
+            {
+              "StartLine": 1059,
+              "EndLine": 1059
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "urllib3",
+          "Identifier": {
+            "PURL": "pkg:pypi/urllib3@2.8.0",
+            "UID": "c131cad1e527141a"
+          },
+          "Version": "2.8.0",
+          "Locations": [
+            {
+              "StartLine": 1066,
+              "EndLine": 1066
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "uvicorn",
+          "Identifier": {
+            "PURL": "pkg:pypi/uvicorn@0.54.0",
+            "UID": "92d596e1eb73c93d"
+          },
+          "Version": "0.54.0",
+          "Locations": [
+            {
+              "StartLine": 1072,
+              "EndLine": 1072
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "wcmatch",
+          "Identifier": {
+            "PURL": "pkg:pypi/wcmatch@8.5.2",
+            "UID": "b9ea1f56db84047b"
+          },
+          "Version": "8.5.2",
+          "Locations": [
+            {
+              "StartLine": 1076,
+              "EndLine": 1076
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "wrapt",
+          "Identifier": {
+            "PURL": "pkg:pypi/wrapt@1.17.3",
+            "UID": "b36c4f21039b2ba7"
+          },
+          "Version": "1.17.3",
+          "Locations": [
+            {
+              "StartLine": 1080,
+              "EndLine": 1080
+            }
+          ],
+          "AnalyzedBy": "pip"
+        },
+        {
+          "Name": "zipp",
+          "Identifier": {
+            "PURL": "pkg:pypi/zipp@4.1.2",
+            "UID": "a1acd3956a80ded5"
+          },
+          "Version": "4.1.2",
+          "Locations": [
+            {
+              "StartLine": 1165,
+              "EndLine": 1165
+            }
+          ],
+          "AnalyzedBy": "pip"
+        }
+      ]
+    }
+  ]
+}

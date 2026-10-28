@@ -1,0 +1,11 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: pqc-benchmark-isolation
+spec:
+  podSelector:
+    matchLabels:
+      app: pqc-benchmark
+  policyTypes: [Ingress, Egress]
+  ingress: []
+  egress: []

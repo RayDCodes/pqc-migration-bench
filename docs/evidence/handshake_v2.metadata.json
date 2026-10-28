@@ -1,0 +1,17 @@
+{
+  "protocol_version": 2,
+  "backend": "liboqs",
+  "liboqs_version": "0.16.0",
+  "liboqs_python_version": "0.16.0",
+  "python": "3.12.14",
+  "platform": "Linux-6.18.55-x86_64-with-glibc2.39",
+  "cryptography": "50.0.2",
+  "git_commit": "84ba86f26005d7d7c7aa9a77adbce9b3d91940ae",
+  "working_tree_dirty": true,
+  "python_source_sha256": "00fd0415d612a334622e6e98f055346abbafaef22a02df974fb8a6357223b039",
+  "trials_per_configuration": 60,
+  "configurations": 30,
+  "latency_model": "sleep before each sendall, not packet-level RTT",
+  "timing": "client handshake only; signing identity provisioned before timer",
+  "authentication": "signed v2 pins an out-of-band public key; no PKI or client identity"
+}
